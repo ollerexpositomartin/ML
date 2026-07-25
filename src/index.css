@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 225 56% 3.3%;
+    --foreground: 223 47% 96%;
+    --card: 224 43% 9%;
+    --card-foreground: 223 47% 96%;
+    --popover: 224 43% 9%;
+    --popover-foreground: 223 47% 96%;
+    --primary: 258 90% 66%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 224 47% 12%;
+    --secondary-foreground: 223 47% 96%;
+    --muted: 224 47% 12%;
+    --muted-foreground: 223 24% 64%;
+    --accent: 224 47% 12%;
+    --accent-foreground: 223 47% 96%;
+    --destructive: 348 95% 68%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 228 40% 18%;
+    --input: 228 40% 18%;
+    --ring: 258 90% 66%;
+    --radius: 0.625rem;
+    --sidebar-background: 225 56% 3.3%;
+    --sidebar-foreground: 223 47% 96%;
+    --sidebar-primary: 258 90% 66%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 224 47% 12%;
+    --sidebar-accent-foreground: 223 47% 96%;
+    --sidebar-border: 228 40% 18%;
+    --sidebar-ring: 258 90% 66%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-bg-0 text-ink font-sans antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  ::selection {
+    background: rgba(139, 92, 246, 0.4);
+    color: #edf1fa;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #04060d;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1c2440;
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2a3556;
+  }
+  /* KaTeX inherits brand ink color */
+  .katex {
+    color: #edf1fa;
+    font-size: 1.06em;
+  }
+}
+
+@layer utilities {
+  /* Brand gradient text */
+  .text-gradient-brand {
+    background: linear-gradient(135deg, #8b5cf6 0%, #22d3ee 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bg-gradient-brand {
+    background-image: linear-gradient(135deg, #8b5cf6 0%, #22d3ee 100%);
+  }
+  .bg-gradient-loss {
+    background-image: linear-gradient(90deg, #fb7185, #fbbf24);
+  }
+  /* Blueprint grid backdrop: 64px pitch + 16px sub-grid */
+  .blueprint-grid {
+    background-image:
+      linear-gradient(rgba(28, 36, 64, 0.25) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(28, 36, 64, 0.25) 1px, transparent 1px),
+      linear-gradient(#1c2440 1px, transparent 1px),
+      linear-gradient(90deg, #1c2440 1px, transparent 1px);
+    background-size:
+      16px 16px,
+      16px 16px,
+      64px 64px,
+      64px 64px;
+  }
+  /* Ambient violet surface glow */
+  .ambient-glow {
+    background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.12) 0%, transparent 70%);
+  }
+  .hairline-gradient {
+    background: linear-gradient(90deg, transparent, #8b5cf6, #22d3ee, transparent);
+    height: 1px;
+  }
+  /* CodeMirror host sizing */
+  .cm-editor {
+    background: #0a0e1a;
+    font-size: 0.85rem;
+  }
+  .cm-editor .cm-scroller {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+  .cm-editor.cm-focused {
+    outline: none;
+  }
+  .cm-gutters {
+    background: #0d1322 !important;
+    border-right: 1px solid #1c2440 !important;
+    color: #55618a !important;
+  }
+  .cm-activeLine {
+    background: rgba(139, 92, 246, 0.06) !important;
+  }
+  .cm-activeLineGutter {
+    background: rgba(139, 92, 246, 0.1) !important;
+  }
+}
