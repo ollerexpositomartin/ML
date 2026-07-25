@@ -3,8 +3,10 @@
  * Convolución hands-on → pooling → kernels sobre foto real → LeNet…ResNet → campo receptivo.
  */
 
+import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ArrowRight } from 'lucide-react'
+import { InlineMath } from 'react-katex'
 import ModuleHero from '@/components/ModuleHero'
 import ChapterNav from '@/components/ChapterNav'
 import FormulaBlock from '@/components/FormulaBlock'
@@ -22,6 +24,9 @@ import CampoReceptivoDemo from '@/components/cnn/CampoReceptivoDemo'
 registerExercises(CNN_EXERCISES)
 
 const SECTIONS = [
+  { id: 'idea', label: '4.A La idea sin fórmulas' },
+  { id: 'repaso', label: '4.B Repaso exprés' },
+  { id: 'glosario', label: '4.C Glosario de símbolos' },
   { id: 'convolucion', label: '4.1 Convolución' },
   { id: 'pooling', label: '4.2 Pooling' },
   { id: 'kernels', label: '4.3 Kernels reales' },
@@ -80,6 +85,49 @@ function Prose({ content }: { content: string }) {
   return <TeXParagraphs content={content} className="mb-6 max-w-[720px] text-base leading-[1.75] text-muted" />
 }
 
+/** Aviso antes de una fórmula: qué hace, sin notación. */
+function Llano({ children }: { children: ReactNode }) {
+  return (
+    <div className="mb-5 max-w-[720px] rounded-lg border-l-2 border-lime/60 bg-lime/5 px-4 py-3">
+      <div className="mb-1 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-lime">// en castellano llano</div>
+      <p className="text-sm leading-relaxed text-muted">{children}</p>
+    </div>
+  )
+}
+
+/** Checklist de prerrequisitos con enlace al módulo donde se explican. */
+function Repaso({ items }: { items: { q: string; d: string; to: string; toLabel: string }[] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {items.map((r) => (
+        <div key={r.q} className="rounded-xl border border-line bg-panel px-5 py-4 transition-all hover:-translate-y-1 hover:border-cyan/50">
+          <div className="mb-1.5 font-display text-sm font-semibold text-ink">{r.q}</div>
+          <p className="mb-2 text-xs leading-relaxed text-muted">{r.d}</p>
+          <Link to={r.to} className="font-mono text-xs text-cyan transition-colors hover:text-ink">
+            → {r.toLabel}
+          </Link>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Tarjetas símbolo → significado en una línea. */
+function Glosario({ items }: { items: [string, string][] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {items.map(([sym, desc]) => (
+        <div key={sym} className="flex items-start gap-3 rounded-xl border border-line bg-panel px-4 py-3">
+          <span className="inline-flex min-w-[2.75rem] shrink-0 justify-center rounded-md border border-violet/40 bg-violet/10 px-2 py-1 font-mono text-sm text-violet">
+            <InlineMath math={sym} />
+          </span>
+          <span className="text-xs leading-relaxed text-muted">{desc}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function CNN() {
   return (
     <>
@@ -97,12 +145,59 @@ export default function CNN() {
         <ChapterNav sections={SECTIONS} />
 
         <div className="min-w-0 max-w-[860px] flex-1 space-y-28">
+          {/* S0a · La idea sin fórmulas */}
+          <section id="idea">
+            <SectionHead kicker="// 4.A · antes de empezar" title="La idea sin fórmulas" />
+            <Prose content={String.raw`Para una red, una foto no es más que una tabla gigante de números (un número por píxel y por color). El problema es que la red del módulo anterior no sabe de vecindades: para ella, dos píxeles que están juntos son tan distintos como dos en esquinas opuestas.
+
+La convolución resuelve esto con una **lupa**: una plantilla pequeña (por ejemplo 3×3) que recorre la imagen de izquierda a derecha y de arriba abajo, como un doble bucle sobre la tabla. En cada posición se pregunta: «¿cuánto se parece este trocito a mi patrón?». Donde el parecido es alto, enciende una luz en una nueva tabla de salida. Una lupa puede especializarse en bordes verticales, otra en texturas rugosas, otra en manchas rojas.
+
+Lo potente viene al apilar capas: la segunda capa pone lupas sobre el resultado de la primera, así que detecta **patrones de patrones** — bordes se combinan en esquinas, esquinas en formas, formas en objetos. Y como se usa la MISMA lupa en toda la imagen (no una distinta por posición), un gato desplazado diez píxeles se detecta igual: eso se llama compartir pesos, y es lo que hace a las CNN tan eficientes. Por último, el pooling es un resumen: «¿había algo interesante en esta zona?» — apunta la respuesta y tira los detalles sobrantes.`} />
+          </section>
+
+          {/* S0b · Repaso exprés */}
+          <section id="repaso">
+            <SectionHead kicker="// 4.B · prerrequisitos en 1 minuto" title="Repaso exprés" />
+            <Prose content={String.raw`Cuatro ideas básicas y un módulo que conviene tener fresco. Pulsa el enlace si algo necesita repaso.`} />
+            <Repaso items={[
+              { q: '¿Qué es una matriz?', d: 'Una tabla de números. Una imagen en gris ES una matriz; a color, tres matrices apiladas.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Qué es el producto punto?', d: 'Multiplicar dos listas elemento a elemento y sumar: mide cuánto se parecen. Es la operación de la lupa.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Qué es un peso / parámetro?', d: 'Un número ajustable que la red aprende sola. En una CNN, los números de cada lupa son pesos.', to: '/modulos/redes-neuronales', toLabel: 'repásalo en Redes Neuronales' },
+              { q: '¿Recuerdas la activación y backprop?', d: 'La decisión no lineal tras cada capa y el reparto de culpas hacia atrás. Aquí funcionan igual.', to: '/modulos/redes-neuronales', toLabel: 'repásalo en Redes Neuronales' },
+              { q: '¿Qué es un array 3D?', d: 'Una lista de tablas: imagen[canal][fila][columna]. Lo que en numpy es un tensor (H, W, C).', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+            ]} />
+          </section>
+
+          {/* S0c · Glosario */}
+          <section id="glosario">
+            <SectionHead kicker="// 4.C · diccionario del módulo" title="Glosario de símbolos" />
+            <Prose content={String.raw`Los símbolos que aparecerán en esta página, traducidos en una línea.`} />
+            <Glosario items={[
+              [String.raw`K`, 'kernel: la lupa o plantilla que recorre la imagen (sus números se aprenden)'],
+              [String.raw`I * K`, 'convolución: deslizar la lupa K sobre la imagen I y anotar el parecido en cada posición'],
+              [String.raw`p`, 'padding: un marco de ceros alrededor de la imagen para controlar el tamaño de salida'],
+              [String.raw`s`, 'stride: el salto de la lupa; s=2 va de dos en dos y reduce la imagen a la mitad'],
+              [String.raw`n_{\text{out}}`, 'tamaño del mapa de salida tras la convolución'],
+              [String.raw`H \times W \times C`, 'alto × ancho × canales: las dimensiones de una imagen o mapa de features'],
+              [String.raw`\lfloor \cdot \rfloor`, 'redondear hacia abajo: al dividir posiciones sobran decimales que se descartan'],
+              [String.raw`F(x) + x`, 'conexión residual: la salida es lo nuevo aprendido MÁS la entrada intacta (un atajo)'],
+              [String.raw`F'(x) + 1`, 'el «+1» que garantiza que la señal de corrección siempre llegue hasta atrás'],
+              [String.raw`k \times k`, 'tamaño de la lupa: 3×3 es el estándar moderno'],
+            ]} />
+          </section>
+
           {/* S1 · Convolución */}
           <section id="convolucion">
             <SectionHead kicker="// 4.1 · la operación" title="De píxeles a patrones" />
             <Prose content={String.raw`Una imagen es un tensor $H \times W \times C$, no un vector. Aplanarla para dársela a un MLP comete dos crímenes: destruye la geometría (dos píxeles vecinos son tan importantes como dos lejanos) y dispara los parámetros (una foto de 224×224×3 → millones de pesos solo en la primera capa). Además, un MLP no sabe que un gato desplazado 10 píxeles sigue siendo el mismo gato.
 
 La convolución lo resuelve con una idea humilde: una pequeña ventana (kernel) que recorre la imagen calculando un producto escalar en cada posición. El mismo kernel se reutiliza en todas las posiciones — **weight sharing** —, lo que da dos superpoderes: poquísimos parámetros y **equivariancia a traslaciones** (si el patrón se mueve, el mapa de salida se mueve con él).`} />
+            <Llano>
+              La lupa (K) se coloca sobre cada trocito de la imagen, multiplica los píxeles por su plantilla y
+              lo suma todo: ese número es el «parecido» en esa posición. La parte de la derecha es solo la
+              cuenta de cuántas posiciones caben según el marco (p) y el salto (s) — un bucle for escrito
+              en matemáticas.
+            </Llano>
             <FormulaBlock
               formula={String.raw`(I * K)[i, j] = \sum_u \sum_v I_{\text{pad}}[s i + u,\; s j + v] \cdot K[u, v], \qquad n_{\text{out}} = \left\lfloor \frac{n + 2p - k}{s} \right\rfloor + 1`}
               caption="La convolución (correlación cruzada) y el tamaño de salida"
@@ -197,6 +292,11 @@ Aquí está el dato que cambió la historia: **las CNN aprenden solas kernels mu
                 ))}
               </div>
             </div>
+            <Llano>
+              La salida de la capa es «lo nuevo que aprende» MÁS «la entrada original, sin tocar». Como abrir
+              un atajo: aunque la capa no aprenda nada útil, la información sigue pasando intacta, y la señal
+              de corrección siempre tiene un camino directo hasta el principio de la red, por profunda que sea.
+            </Llano>
             <FormulaBlock
               formula={String.raw`y = F(x) + x \qquad \Rightarrow \qquad \frac{\partial y}{\partial x} = F'(x) + 1`}
               caption="La conexión residual: por qué el gradiente fluye por el atajo"
