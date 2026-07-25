@@ -6,6 +6,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ArrowRight } from 'lucide-react'
+import { InlineMath } from 'react-katex'
 import ModuleHero from '@/components/ModuleHero'
 import ChapterNav from '@/components/ChapterNav'
 import FormulaBlock from '@/components/FormulaBlock'
@@ -20,6 +21,9 @@ import DemoPuertas from '@/components/secuencias/DemoPuertas'
 import DemoSeq2seq from '@/components/secuencias/DemoSeq2seq'
 
 const SECTIONS = [
+  { id: 'idea', label: '5.A La idea sin fórmulas' },
+  { id: 'repaso', label: '5.B Repaso exprés' },
+  { id: 'glosario', label: '5.C Glosario de símbolos' },
   { id: 'embeddings', label: '5.1 Embeddings' },
   { id: 'rnn', label: '5.2 La RNN' },
   { id: 'vanishing', label: '5.3 Gradiente que se desvanece' },
@@ -45,6 +49,49 @@ function Prose({ content }: { content: string }) {
   return <TeXParagraphs content={content} className="max-w-[720px] text-[0.95rem] leading-[1.75] text-muted" />
 }
 
+/** Aviso antes de una fórmula: qué hace, sin notación. */
+function Llano({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-lg border-l-2 border-lime/60 bg-lime/5 px-4 py-3">
+      <div className="mb-1 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-lime">// en castellano llano</div>
+      <p className="max-w-[720px] text-sm leading-relaxed text-muted">{children}</p>
+    </div>
+  )
+}
+
+/** Checklist de prerrequisitos con enlace al módulo donde se explican. */
+function Repaso({ items }: { items: { q: string; d: string; to: string; toLabel: string }[] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {items.map((r) => (
+        <div key={r.q} className="rounded-xl border border-line bg-panel px-5 py-4 transition-all hover:-translate-y-1 hover:border-cyan/50">
+          <div className="mb-1.5 font-display text-sm font-semibold text-ink">{r.q}</div>
+          <p className="mb-2 text-xs leading-relaxed text-muted">{r.d}</p>
+          <Link to={r.to} className="font-mono text-xs text-cyan transition-colors hover:text-ink">
+            → {r.toLabel}
+          </Link>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Tarjetas símbolo → significado en una línea. */
+function Glosario({ items }: { items: [string, string][] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {items.map(([sym, desc]) => (
+        <div key={sym} className="flex items-start gap-3 rounded-xl border border-line bg-panel px-4 py-3">
+          <span className="inline-flex min-w-[2.75rem] shrink-0 justify-center rounded-md border border-violet/40 bg-violet/10 px-2 py-1 font-mono text-sm text-violet">
+            <InlineMath math={sym} />
+          </span>
+          <span className="text-xs leading-relaxed text-muted">{desc}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function Secuencias() {
   const [eCoseno, eSoftmax, eRnn, eAtencion, eLstm] = SECUENCIAS_EXERCISES
 
@@ -64,6 +111,50 @@ export default function Secuencias() {
         <ChapterNav sections={SECTIONS} />
 
         <div className="min-w-0 max-w-[860px] flex-1">
+          {/* S0a · La idea sin fórmulas */}
+          <Section id="idea" kicker="5.A · ANTES DE EMPEZAR" title="La idea sin fórmulas">
+            <Prose
+              content={[
+                'El texto no se puede meter entero en una red: hay que leerlo **palabra a palabra, como lo harías tú**, llevando una «nota mental» de lo que va pasando. Una RNN es exactamente eso: un bucle for sobre la secuencia, donde en cada vuelta la nota mental (el **estado**) se actualiza combinando lo que recuerdas con la palabra que acabas de leer. «El gato que perseguía al ratón negro era…» — para adivinar qué sigue, tu nota mental tiene que retener «gato» desde el principio.',
+                '',
+                'Ahí está el problema: la nota tiene tamaño fijo, así que lo antiguo se va diluyendo con cada palabra nueva. Es como intentar recordar el principio de una película mientras ves el final. A esto se le llama **memoria a largo plazo**, y matemáticamente ocurre que la señal de corrección se apaga exponencialmente al viajar hacia atrás (el «gradiente que se desvanece»).',
+                '',
+                'La solución histórica son las **puertas** de las LSTM: interruptores suaves (valores entre 0 y 1) que la red aprende a colocar. Una puerta decide qué se **borra** de la nota, otra qué se **escribe** de nuevo, otra qué se **lee** en voz alta. Y antes de todo esto, una pieza básica: los **embeddings**, que convierten cada palabra en un punto de un mapa donde las palabras parecidas quedan cerca — porque a una red hay que darle números, no letras.',
+              ].join('\n')}
+            />
+          </Section>
+
+          {/* S0b · Repaso exprés */}
+          <Section id="repaso" kicker="5.B · PRERREQUISITOS EN 1 MINUTO" title="Repaso exprés">
+            <Prose content="Cinco ideas básicas y un módulo que conviene tener fresco. Pulsa el enlace si algo necesita repaso." />
+            <Repaso items={[
+              { q: '¿Qué es un vector?', d: 'Una lista de números: un array. Cada palabra se convertirá en uno (su embedding).', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Qué es el producto punto?', d: 'Multiplicar dos listas elemento a elemento y sumar: mide cuánto se parecen dos vectores.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Qué hacen sigmoide y tanh?', d: 'Aplastan cualquier número a los rangos 0–1 y −1–1. Las puertas usan sigmoide como interruptor suave.', to: '/modulos/redes-neuronales', toLabel: 'repásalo en Redes Neuronales' },
+              { q: '¿Qué es la regla de la cadena?', d: 'Si una cosa depende de otra que depende de otra, los efectos se multiplican. Es la razón del gradiente que se apaga.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Recuerdas backpropagation?', d: 'Repartir la culpa del error hacia atrás. En una RNN se reparte además hacia atrás en el tiempo.', to: '/modulos/redes-neuronales', toLabel: 'repásalo en Redes Neuronales' },
+            ]} />
+          </Section>
+
+          {/* S0c · Glosario */}
+          <Section id="glosario" kicker="5.C · DICCIONARIO DEL MÓDULO" title="Glosario de símbolos">
+            <Prose content="Los símbolos que aparecerán en esta página, traducidos en una línea." />
+            <Glosario items={[
+              [String.raw`h_t`, 'la nota mental (estado) tras leer t palabras: el resumen de todo lo anterior'],
+              [String.raw`x_t`, 'la entrada del paso t: el vector (embedding) de la palabra actual'],
+              [String.raw`C_t`, 'la cinta de memoria de la LSTM: una vía aparte que cruza toda la secuencia casi sin obstáculos'],
+              [String.raw`\sigma`, 'sigmoide: produce valores entre 0 y 1; cada puerta es uno de estos interruptores suaves'],
+              [String.raw`f_t,\ i_t,\ o_t`, 'las tres puertas: olvido (qué borrar), entrada (qué escribir) y salida (qué leer)'],
+              [String.raw`\odot`, 'multiplicar elemento a elemento: así «filtra» cada puerta la memoria'],
+              [String.raw`\prod`, 'productorio: un bucle que multiplica; muchos factores < 1 seguidos apagan la señal'],
+              [String.raw`\mathrm{softmax}`, 'convierte una lista de puntuaciones en porcentajes que suman 1'],
+              [String.raw`\alpha_{ij}`, 'peso de atención: el porcentaje de importancia que la palabra j tiene ahora mismo'],
+              [String.raw`c_i`, 'contexto: el resumen a medida que el decoder construye mirando las palabras originales'],
+              [String.raw`\cos(a,b)`, 'similitud coseno: compara la dirección de dos vectores (1 = idénticos, −1 = opuestos)'],
+              [String.raw`\mathbb{R}^d`, '«el espacio de d dimensiones»: cada palabra es un punto con d coordenadas'],
+            ]} />
+          </Section>
+
           {/* S1 · Embeddings */}
           <Section id="embeddings" kicker="5.1 · EMBEDDINGS" title="Palabras como geometría">
             <Prose
@@ -73,6 +164,11 @@ export default function Secuencias() {
                 'Los **embeddings densos** resuelven ambos: cada palabra es un punto en $\\mathbb{R}^d$ con $d \\ll V$ (típicamente 100–768), aprendido de modo que palabras que aparecen en contextos similares quedan cerca. Es la **hipótesis distribucional**: «conocerás a una palabra por la compañía que mantiene».',
               ].join('\n')}
             />
+            <Llano>
+              Para saber si dos palabras se parecen, compara la dirección de sus flechas en el mapa: si apuntan
+              al mismo sitio, se parecen; si apuntan en direcciones opuestas, son antónimos. La longitud de las
+              flechas se descarta: solo importa el ángulo.
+            </Llano>
             <FormulaBlock
               formula="\cos(a, b) = \frac{a \cdot b}{\lVert a \rVert \, \lVert b \rVert}"
               caption="Similitud coseno: la métrica estándar entre embeddings"
@@ -95,6 +191,11 @@ export default function Secuencias() {
                 'Una **red neuronal recurrente** mantiene un **estado oculto** $h$ que actúa como memoria: lee la entrada $x_t$ de cada paso, la combina con lo que recuerda ($h_{t-1}$) y actualiza su recuerdo. La misma celda — **los mismos pesos** — se aplica en cada posición: eso es el *weight sharing* en el tiempo, y es lo que le permite manejar secuencias de cualquier longitud.',
               ].join('\n')}
             />
+            <Llano>
+              En cada vuelta del bucle: mezcla lo que acabas de leer (x) con tu nota mental anterior (h),
+              aplícale la función de decisión, y esa mezcla es tu nueva nota mental. La misma receta, con los
+              mismos ingredientes (pesos), repetida para cada palabra.
+            </Llano>
             <FormulaBlock
               formula="h_t = \varphi\!\left(W_h\, h_{t-1} + W_x\, x_t + b\right), \qquad \hat{y}_t = W_y\, h_t"
               caption="La recurrencia: una celda, desplegada en el tiempo"
@@ -119,6 +220,12 @@ export default function Secuencias() {
                 'Aquí está el problema que casi mata a las RNN. En BPTT, el gradiente que llega del paso $T$ al paso $k$ atraviesa $T-k$ celdas, y en cada una se multiplica por el Jacobiano de la recurrencia:',
               ].join('\n')}
             />
+            <Llano>
+              Para que la señal de corrección llegue desde el final de la frase hasta la primera palabra tiene
+              que atravesar todas las celdas intermedias, y en cada una se multiplica por un factor. Si esos
+              factores son menores que 1, pasa lo de 0.9 × 0.9 × 0.9…: la señal se apaga exponencialmente y
+              las palabras antiguas dejan de recibir instrucciones de mejora.
+            </Llano>
             <FormulaBlock
               formula="\frac{\partial h_T}{\partial h_k} = \prod_{t=k+1}^{T} \mathrm{diag}\!\left(\varphi'(z_t)\right) W_h"
               caption="Producto de Jacobianos: la causa matemática del olvido"
@@ -141,6 +248,11 @@ export default function Secuencias() {
                 'La **LSTM** (*Long Short-Term Memory*, 1997) añade una segunda autopista de información: el **estado de celda** $C_t$, una cinta transportadora que atraviesa toda la secuencia casi sin transformaciones — solo sumas y productos elemento a elemento, así que el gradiente fluye sin desvanecerse. Tres **puertas** (sigmoides entre 0 y 1) deciden qué se borra, qué se escribe y qué se lee:',
               ].join('\n')}
             />
+            <Llano>
+              Las tres puertas son la misma cuenta repetida tres veces: mira la nota anterior y la palabra
+              actual, y decide un número entre 0 (cerrado) y 1 (abierto). Una puerta gobierna el borrado, otra
+              la escritura y otra la lectura. Cada una aprende sus propios criterios.
+            </Llano>
             <FormulaBlock
               formula="f_t = \sigma\!\left(W_f [h_{t-1}, x_t] + b_f\right) \qquad i_t = \sigma\!\left(W_i [h_{t-1}, x_t] + b_i\right) \qquad o_t = \sigma\!\left(W_o [h_{t-1}, x_t] + b_o\right)"
               caption="Las tres puertas: olvido, entrada y salida"
@@ -151,6 +263,12 @@ export default function Secuencias() {
                 { symbol: '[h_{t-1}, x_t]', color: '#8B5CF6', explanation: 'concatenación de memoria y entrada: las puertas miran ambas' },
               ]}
             />
+            <Llano>
+              La cinta de memoria se actualiza en dos gestos: conserva lo viejo multiplicado por «cuánto
+              mantener», y súmale lo nuevo multiplicado por «cuánto escribir». Solo sumas y multiplicaciones
+              suaves — sin obstáculos bruscos — así que la señal (y la corrección) puede viajar decenas de
+              pasos sin apagarse.
+            </Llano>
             <FormulaBlock
               formula="\tilde{C}_t = \tanh(W_c [h_{t-1}, x_t] + b_c) \qquad C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t \qquad h_t = o_t \odot \tanh(C_t)"
               caption="Escritura y lectura de la cinta transportadora"
@@ -192,6 +310,12 @@ export default function Secuencias() {
                 'La solución de **Bahdanau et al. (2015)** es elegante: no comprimas. Guarda *todos* los estados del encoder y deja que el decoder, en cada paso, decida **dónde mirar** con una combinación ponderada:',
               ].join('\n')}
             />
+            <Llano>
+              Antes de escribir cada palabra, el modelo repasa todas las palabras originales y reparte
+              porcentajes de importancia (que suman 100%). Luego mezcla la información de cada una según su
+              porcentaje: un resumen a medida para ese momento concreto, en vez de fiarlo todo a una única
+              nota mental.
+            </Llano>
             <FormulaBlock
               formula="c_i = \sum_{j} \alpha_{ij}\, h_j, \qquad \alpha_{ij} = \mathrm{softmax}(e_{ij})"
               caption="Atención de Bahdanau: un contexto a medida en cada paso"
@@ -247,7 +371,7 @@ export default function Secuencias() {
                 xp={40}
                 question="¿Cuál es la causa matemática directa del vanishing gradient en una RNN?"
                 options={[
-                  { text: 'La función tanh, que se satura', correct: false, explanation: 'Contribuye ($\\varphi\' \\le 1$), pero no es la causa estructural: incluso con otras activaciones el producto de matrices encadena el problema.' },
+                  { text: 'La función tanh, que se satura', correct: false, explanation: "Contribuye ($\\varphi' \\le 1$), pero no es la causa estructural: incluso con otras activaciones el producto de matrices encadena el problema." },
                   { text: 'El learning rate demasiado alto', correct: false, explanation: 'Eso causa inestabilidad, no el decaimiento exponencial sistemático del gradiente hacia el pasado.' },
                   { text: 'El producto de $T-k$ Jacobianos con norma < 1 al retropropagar', correct: true, explanation: '¡Eso es! $\\partial h_T / \\partial h_k$ es un producto de muchas matrices; si cada una encoge, el total decae exponencialmente con la distancia temporal.' },
                   { text: 'Que la secuencia sea demasiado corta', correct: false, explanation: 'Al revés: cuanto más larga la secuencia, más factores en el producto y peor el problema.' },
