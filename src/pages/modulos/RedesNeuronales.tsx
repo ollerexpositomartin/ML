@@ -3,8 +3,10 @@
  * Perceptrón → MLP → activaciones → backpropagation → playground TF.js → optimizadores.
  */
 
+import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ArrowRight } from 'lucide-react'
+import { InlineMath } from 'react-katex'
 import ModuleHero from '@/components/ModuleHero'
 import ChapterNav from '@/components/ChapterNav'
 import FormulaBlock from '@/components/FormulaBlock'
@@ -23,6 +25,9 @@ import CarreraDemo from '@/components/redes/CarreraDemo'
 registerExercises(REDES_NEURONALES_EXERCISES)
 
 const SECTIONS = [
+  { id: 'idea', label: '3.A La idea sin fórmulas' },
+  { id: 'repaso', label: '3.B Repaso exprés' },
+  { id: 'glosario', label: '3.C Glosario de símbolos' },
   { id: 'neurona', label: '3.1 La neurona' },
   { id: 'activaciones', label: '3.2 Activaciones' },
   { id: 'forward', label: '3.3 Forward pass' },
@@ -49,6 +54,49 @@ function Prose({ content }: { content: string }) {
   return <TeXParagraphs content={content} className="mb-6 max-w-[720px] text-base leading-[1.75] text-muted" />
 }
 
+/** Aviso antes de una fórmula: qué hace, sin notación. */
+function Llano({ children }: { children: ReactNode }) {
+  return (
+    <div className="mb-5 max-w-[720px] rounded-lg border-l-2 border-lime/60 bg-lime/5 px-4 py-3">
+      <div className="mb-1 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-lime">// en castellano llano</div>
+      <p className="text-sm leading-relaxed text-muted">{children}</p>
+    </div>
+  )
+}
+
+/** Checklist de prerrequisitos con enlace al módulo donde se explican. */
+function Repaso({ items }: { items: { q: string; d: string; to: string; toLabel: string }[] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {items.map((r) => (
+        <div key={r.q} className="rounded-xl border border-line bg-panel px-5 py-4 transition-all hover:-translate-y-1 hover:border-cyan/50">
+          <div className="mb-1.5 font-display text-sm font-semibold text-ink">{r.q}</div>
+          <p className="mb-2 text-xs leading-relaxed text-muted">{r.d}</p>
+          <Link to={r.to} className="font-mono text-xs text-cyan transition-colors hover:text-ink">
+            → {r.toLabel}
+          </Link>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Tarjetas símbolo → significado en una línea. */
+function Glosario({ items }: { items: [string, string][] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {items.map(([sym, desc]) => (
+        <div key={sym} className="flex items-start gap-3 rounded-xl border border-line bg-panel px-4 py-3">
+          <span className="inline-flex min-w-[2.75rem] shrink-0 justify-center rounded-md border border-violet/40 bg-violet/10 px-2 py-1 font-mono text-sm text-violet">
+            <InlineMath math={sym} />
+          </span>
+          <span className="text-xs leading-relaxed text-muted">{desc}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function RedesNeuronales() {
   return (
     <>
@@ -66,12 +114,60 @@ export default function RedesNeuronales() {
         <ChapterNav sections={SECTIONS} />
 
         <div className="min-w-0 max-w-[860px] flex-1 space-y-28">
+          {/* S0a · La idea sin fórmulas */}
+          <section id="idea">
+            <SectionHead kicker="// 3.A · antes de empezar" title="La idea sin fórmulas" />
+            <Prose content={String.raw`Una red neuronal es, en el fondo, **una función gigante construida encadenando muchas funciones pequeñas** — como cuando en tu código haces «f(g(h(x)))». Cada "neurona" es una operación de lo más simple: multiplica cada entrada por un número que indica cuánto le importa (su **peso**), suma todo, le añade un pequeño ajuste y decide cuánta señal deja pasar. Apilar neuronas en capas es componer esas funciones una tras otra.
+
+¿Y "aprender"? Los pesos son **tornillos ajustables**. Entrenar es girar esos tornillos una y otra vez, poquito a poco, hasta que la salida de la red se acerca a la respuesta correcta en todos los ejemplos que le enseñas. No hay magia: es prueba y error guiada.
+
+La pieza genial es **backpropagation**: cuando la red se equivoca, ¿cómo sabes qué tornillo tiene la culpa y cuánto? Backprop reparte la culpa del error hacia atrás, capa por capa, como quien revisa una cadena de montaje desde el final buscando dónde se estropeó la pieza. Y el "descenso de gradiente" no es más que la regla de girar cada tornillo en la dirección que baja el error. Todo lo demás de este módulo son detalles — importantes, pero detalles — de esta idea.`} />
+          </section>
+
+          {/* S0b · Repaso exprés */}
+          <section id="repaso">
+            <SectionHead kicker="// 3.B · prerrequisitos en 1 minuto" title="Repaso exprés" />
+            <Prose content={String.raw`No necesitas más matemáticas que estas cinco ideas. Si alguna te suena a chino, pulsa el enlace: el módulo Fundamentos la explica desde cero.`} />
+            <Repaso items={[
+              { q: '¿Qué es un vector?', d: 'Una lista ordenada de números: literalmente un array. Los datos de entrada de la red son eso.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Qué es una matriz?', d: 'Una tabla de números. Multiplicar una matriz por un vector es "combinar sus filas con pesos": lo que hace cada capa.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Qué es una derivada?', d: 'Cuánto cambia la salida si mueves la entrada un poquitín. Es la brújula que dice en qué dirección baja el error.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Qué significa Σ (sumatorio)?', d: 'Un bucle for que acumula una suma. Σᵢ wᵢxᵢ es: for i: total += w[i]*x[i].', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Recuerdas el descenso de gradiente?', d: 'Ajustar los tornillos bajando por la pendiente del error, paso a paso. Ya lo usaste para ajustar una recta.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Y la regresión lineal?', d: 'Predecir un número combinando las entradas con pesos. Una neurona es casi eso, más una decisión no lineal al final.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+            ]} />
+          </section>
+
+          {/* S0c · Glosario */}
+          <section id="glosario">
+            <SectionHead kicker="// 3.C · diccionario del módulo" title="Glosario de símbolos" />
+            <Prose content={String.raw`Cada letra griega o símbolo raro que verás en esta página, traducido en una línea. Vuelve aquí cuando te pierdas.`} />
+            <Glosario items={[
+              [String.raw`\sigma`, 'sigmoide: aplasta cualquier número al rango 0–1 (útil como probabilidad o interruptor suave)'],
+              [String.raw`\varphi`, 'función de activación: la "decisión" no lineal de la neurona (ReLU, tanh, GELU…)'],
+              [String.raw`w,\ W`, 'pesos: los tornillos ajustables; cuánto importa cada conexión'],
+              [String.raw`b`, 'sesgo: un ajuste fijo que desplaza el punto de disparo de la neurona'],
+              [String.raw`z`, 'la suma ponderada ANTES de aplicar la activación'],
+              [String.raw`a`, 'la salida de la neurona o capa, ya con la activación aplicada'],
+              [String.raw`\delta`, 'culpa: cuánto contribuye cada neurona al error final'],
+              [String.raw`\eta`, 'learning rate: el tamaño de cada giro de tornillo'],
+              [String.raw`\nabla L`, 'gradiente: la dirección en la que el error sube más rápido (se usa para ir en dirección contraria)'],
+              [String.raw`\odot`, 'multiplicar dos listas elemento a elemento (como zip con * en Python)'],
+              [String.raw`\beta`, 'factor de memoria del optimizador: cuánto pesa el pasado reciente'],
+              [String.raw`\sum`, 'sumatorio: un bucle que suma; ∏ (productorio) es un bucle que multiplica'],
+            ]} />
+          </section>
+
           {/* S1 · La neurona */}
           <section id="neurona">
             <SectionHead kicker="// 3.1 · teoría + demo" title="La neurona" />
             <Prose content={String.raw`La inspiración biológica es solo eso, una inspiración: una neurona artificial no imita al cerebro, es una **máquina matemática** minimalista. Toma unas entradas, las combina linealmente con unos pesos, añade un sesgo y pasa el resultado por una función no lineal. Nada más — y sin embargo, es suficiente.
 
 La fórmula completa cabe en una línea: $z = \sum_i w_i x_i + b$ y $a = \varphi(z)$. Una neurona es un **modelo lineal seguido de una no-linealidad**. Lo extraordinario llega al apilarlas: el teorema de aproximación universal garantiza que con una sola capa oculta suficientemente ancha puedes aproximar cualquier función continua. La pregunta del millón no es si puede, sino cómo encontrar los pesos.`} />
+            <Llano>
+              Una neurona hace solo dos cosas: multiplica cada entrada por su importancia y suma todo (eso es z);
+              después decide cuánta señal deja pasar (eso es a). La fórmula de abajo dice exactamente eso, ni más ni menos.
+            </Llano>
             <FormulaBlock
               formula={String.raw`z = \sum_{i=1}^{d} w_i x_i + b, \qquad a = \varphi(z)`}
               caption="La neurona: combinación lineal + no-linealidad"
@@ -94,6 +190,11 @@ La fórmula completa cabe en una línea: $z = \sum_i w_i x_i + b$ y $a = \varphi
             <Prose content={String.raw`Sin no-linealidad, una red de 100 capas es exactamente equivalente a una de una: la composición de funciones lineales es lineal. La activación es lo que rompe esa trivialidad y permite que cada capa construya representaciones más abstractas.
 
 La **sigmoide** y **tanh** dominaron los 90, pero saturan: con $|z|$ grande su gradiente se desvanece y el aprendizaje se congela. **ReLU** ($\max(0, z)$) lo arregló con una derivada que vale 1 en todo el semieje positivo — a costa del riesgo de *ReLU moribunda* (si una neurona queda siempre en zona cero, nunca recibe gradiente; Leaky ReLU la resucita con una pendiente pequeña). **GELU**, $z \cdot \Phi(z)$, es hoy la estándar en Transformers: una ReLU suavizada con puerta probabilística. **Swish** ($z \cdot \sigma(z)$), descubierta por búsqueda automática, compite con ella.`} />
+            <Llano>
+              En vez de cortar la señal de golpe como hace ReLU (todo lo negativo se apaga), GELU la atenúa
+              suavemente según su tamaño: las señales grandes pasan casi enteras y las negativas se van
+              apagando poco a poco. Es una ReLU con modales.
+            </Llano>
             <FormulaBlock
               formula={String.raw`\mathrm{GELU}(z) = z \cdot \Phi(z) \approx z \cdot \sigma(1.702\,z)`}
               caption="GELU: la activación de los Transformers (Φ = CDF de la normal)"
@@ -113,6 +214,11 @@ La **sigmoide** y **tanh** dominaron los 90, pero saturan: con $|z|$ grande su g
             <Prose content={String.raw`Apilar capas es componer transformaciones. En notación matricial, cada capa es un producto de matrices más una activación elemento a elemento. La **disciplina de formas** es tu mejor amiga: si $a^{(l-1)} \in \mathbb{R}^{n_{l-1}}$, entonces $W^{(l)} \in \mathbb{R}^{n_l \times n_{l-1}}$ y $b^{(l)} \in \mathbb{R}^{n_l}$. Cualquier bug de dimensiones se detecta en 10 segundos contando formas.
 
 La profundidad no es solo más potencia bruta: es **composicionalidad**. Las primeras capas aprenden features simples (bordes, frecuencias), las intermedias las combinan (formas, fonemas) y las profundas, conceptos. Contar parámetros también es fácil: cada capa aporta $(n_{l-1} + 1) \cdot n_l$ pesos — el +1 es el sesgo por neurona.`} />
+            <Llano>
+              Es la misma operación de la neurona, pero hecha para todas las neuronas de la capa a la vez:
+              cada fila de la tabla W guarda las importancias de una neurona. Lo que sería un bucle sobre
+              neuronas se convierte en una sola multiplicación de matriz por vector.
+            </Llano>
             <FormulaBlock
               formula={String.raw`z^{(l)} = W^{(l)} a^{(l-1)} + b^{(l)}, \qquad a^{(l)} = \varphi\!\left(z^{(l)}\right)`}
               caption="Una capa densa en forma matricial"
@@ -212,6 +318,10 @@ Experimentos que merecen la pena: XOR con 1 capa oculta de 2 neuronas (justo en 
           <section id="optimizadores">
             <SectionHead kicker="// 3.6 · bajar la montaña con estilo" title="Optimizadores y trucos" />
             <Prose content={String.raw`SGD puro es frágil: en valles alargados oscila de pared a pared y avanza lentísimo. **Momentum** acumula una velocidad que suaviza las oscilaciones y acelera en las direcciones consistentes — como una bola con inercia. **Adam** va más allá: mantiene una media del gradiente ($m$) y de su cuadrado ($v$), corrige el sesgo de inicialización y divide cada coordenada por su escala típica. Es el optimizador por defecto del deep learning moderno.`} />
+            <Llano>
+              En vez de moverte solo según la pendiente de hoy, guarda inercia: como una bola rodando cuesta
+              abajo, los empujones en la misma dirección se acumulan y el zigzag lateral se cancela solo.
+            </Llano>
             <FormulaBlock
               formula={String.raw`v \leftarrow \beta v - \eta \nabla L, \qquad \theta \leftarrow \theta + v`}
               caption="Momentum: el gradiente se convierte en aceleración, no en paso"
@@ -221,6 +331,11 @@ Experimentos que merecen la pena: XOR con 1 capa oculta de 2 neuronas (justo en 
                 { symbol: '\\nabla L', color: '#FB7185', explanation: 'gradiente actual' },
               ]}
             />
+            <Llano>
+              Adam lleva dos promedios móviles: hacia dónde sopla el viento (m) y cuánto de racheado es (v).
+              Con ellos ajusta cada tornillo a su ritmo: pasos grandes donde la señal es estable, pasos
+              pequeños donde es caótica. Los sombreros (^) solo corrigen que esos promedios empiezan en cero.
+            </Llano>
             <FormulaBlock
               formula={String.raw`\hat{m} = \frac{m}{1-\beta_1^t}, \quad \hat{v} = \frac{v}{1-\beta_2^t}, \qquad \theta \leftarrow \theta - \eta \frac{\hat{m}}{\sqrt{\hat{v}} + \varepsilon}`}
               caption="Adam con corrección de sesgo"
