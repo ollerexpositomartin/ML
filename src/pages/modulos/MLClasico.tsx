@@ -24,6 +24,7 @@ import { ML_CLASICO_EXERCISES } from '@/data/exercises/ml-clasico'
 registerExercises(ML_CLASICO_EXERCISES)
 
 const SECTIONS: ChapterSection[] = [
+  { id: 'idea', label: '1.0 La idea sin fórmulas' },
   { id: 'logistica', label: '1.1 Regresión logística' },
   { id: 'metricas', label: '1.2 Métricas' },
   { id: 'overfitting', label: '1.3 Overfitting' },
@@ -59,6 +60,18 @@ function P({ children }: { children: React.ReactNode }) {
   return <p className="text-[0.95rem] leading-[1.8] text-muted">{children}</p>
 }
 
+/** Traducción sin notación de la fórmula que viene a continuación. */
+function EnClaro({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="rounded-lg border-l-2 border-lime/60 bg-lime/5 px-4 py-3 text-[0.9rem] leading-[1.7] text-muted">
+      <span className="mr-2 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-lime">
+        En castellano llano:
+      </span>
+      {children}
+    </p>
+  )
+}
+
 export default function MLClasico() {
   return (
     <>
@@ -76,6 +89,68 @@ export default function MLClasico() {
         <ChapterNav sections={SECTIONS} />
 
         <main className="min-w-0 max-w-[860px] flex-1">
+          {/* S0 · la idea sin fórmulas */}
+          <Section id="idea" kicker="// 1.0 · ANTES DE EMPEZAR" title="La idea sin fórmulas: clasificar y trazar fronteras">
+            <P>
+              <b className="text-ink">Clasificar</b> es decidir a qué grupo pertenece algo: ¿este email es
+              spam o no?, ¿esta transacción es fraude?, ¿este tumor es benigno o maligno? Hasta ahora
+              predecías un número (un precio); ahora la salida es una <b className="text-cyan">etiqueta</b>{' '}
+              entre unas pocas posibles. El truco es que el modelo sigue calculando un número — una
+              «confianza» entre 0 y 1 — y luego aplicamos una regla de corte: si pasa de 0.5, clase 1; si
+              no, clase 0.
+            </P>
+            <P>
+              Cada ejemplo es una fila de números con su etiqueta. Si dibujas los ejemplos como puntos (un
+              color por clase), aprender a clasificar es <b className="text-violet">trazar una frontera de
+              decisión</b>: la línea o curva que separa los grupos. Todo punto que cae a un lado se declara
+              de una clase; al otro lado, de la otra. Piensa en la línea de banda de un campo de fútbol: no
+              importa dónde esté el balón exactamente, importa <b className="text-ink">de qué lado de la
+              línea cayó</b>. Los modelos de este módulo se diferencian, sobre todo, en la forma de frontera
+              que saben dibujar: rectas (regresión logística, SVM), fronteras que serpentean por los vecinos
+              (KNN), o escalones a base de preguntas sí/no (árboles).
+            </P>
+            <P>
+              Mini-glosario de los símbolos que repetirás en todo el módulo (ninguno es nuevo: todos salen
+              del Bloque 0 de Fundamentos):
+            </P>
+            <div className="overflow-x-auto rounded-xl border border-line">
+              <table className="w-full min-w-[560px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-line bg-panel-2 font-mono text-[11px] uppercase tracking-wider text-faint">
+                    <th className="px-4 py-3">símbolo</th>
+                    <th className="px-4 py-3">qué es</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line/60 text-muted">
+                  <tr>
+                    <td className="px-4 py-2.5 font-mono text-cyan"><TeX content="$\\sigma(z)$" /></td>
+                    <td className="px-4 py-2.5">la <b className="text-ink">sigmoide</b>: una curva en forma de S que aplasta cualquier número al rango (0, 1) para convertirlo en probabilidad</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2.5 font-mono text-violet"><TeX content="$z = w \\cdot x + b$" /></td>
+                    <td className="px-4 py-2.5">la <b className="text-ink">puntuación cruda</b> (producto escalar + sesgo) antes de aplastarla con la sigmoide</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2.5 font-mono text-amber"><TeX content="$p$" /></td>
+                    <td className="px-4 py-2.5">la <b className="text-ink">probabilidad estimada</b> de la clase positiva; la regla de corte es «p ≥ 0.5 → clase 1»</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2.5 font-mono text-lime">TP · FP · TN · FN</td>
+                    <td className="px-4 py-2.5">las cuatro casillas de la <b className="text-ink">matriz de confusión</b>: aciertos y errores de cada tipo (verdadero/falso positivo/negativo)</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2.5 font-mono text-amber"><TeX content="$\\lambda$" /></td>
+                    <td className="px-4 py-2.5">fuerza de la <b className="text-ink">regularización</b>: cuánto castigamos los pesos grandes para evitar memorizar</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2.5 font-mono text-rose"><TeX content="$H$" /></td>
+                    <td className="px-4 py-2.5">la <b className="text-ink">entropía</b>: cuánto «desorden» (mezcla de clases) hay en un grupo de ejemplos; la usan los árboles</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </Section>
+
           {/* S1 · logistica */}
           <Section id="logistica" kicker="// 1.1 · CLASIFICACIÓN" title="De la recta a la probabilidad">
             <P>
@@ -84,6 +159,11 @@ export default function MLClasico() {
               la combinación lineal por la <b className="text-cyan">sigmoide</b>, que comprime todo{' '}
               <TeX content="$\\mathbb{R}$" /> al intervalo <TeX content="$(0, 1)$" /> — una probabilidad.
             </P>
+            <EnClaro>
+              Calcula una puntuación como la de la regresión lineal (pesos por datos, más un ajuste) y pásala
+              por una curva en forma de S que la convierte en un número entre 0 y 1: esa es la probabilidad.
+              Si supera 0.5, dices «clase 1»; si no, «clase 0».
+            </EnClaro>
             <FormulaBlock
               formula="\sigma(z) = \frac{1}{1 + e^{-z}}, \qquad p = \sigma(w \cdot x + b), \qquad \hat{y} = \mathbb{1}[p \geq 0.5]"
               caption="Regresión logística: lineal por dentro, probabilidad por fuera"
@@ -101,6 +181,11 @@ export default function MLClasico() {
               <b className="text-rose">entropía cruzada</b> (log-loss), que no es más que la máxima
               verosimilitud de un modelo Bernoulli (mismo puente que vimos en N0).
             </P>
+            <EnClaro>
+              Mira qué probabilidad le diste a la clase correcta y castígala: cuanto más baja era, más duele.
+              Decir «1 %» cuando la respuesta era sí duele muchísimo; decir «99 %» casi no cuesta nada. Haz
+              la media de ese castigo en todos los ejemplos.
+            </EnClaro>
             <FormulaBlock
               formula="L = -\frac{1}{N}\sum_{i=1}^{N} \Big[ y_i \log p_i + (1 - y_i)\log(1 - p_i) \Big]"
               caption="Entropía cruzada binaria (log-loss)"
@@ -126,6 +211,11 @@ export default function MLClasico() {
               con clases desbalanceadas. La verdad está en la <b className="text-ink">matriz de confusión</b>:
               verdaderos/falsos positivos y negativos (TP, FP, TN, FN).
             </P>
+            <EnClaro>
+              Precision: de todas las veces que dijiste «positivo», ¿en cuántas acertaste? Recall: de todos
+              los positivos que existían de verdad, ¿cuántos cazaste? F1: una nota única que solo sale alta
+              si las dos anteriores son altas a la vez.
+            </EnClaro>
             <FormulaBlock
               formula="\mathrm{Precision} = \frac{TP}{TP + FP}, \qquad \mathrm{Recall} = \frac{TP}{TP + FN}, \qquad F_1 = \frac{2\,P\,R}{P + R}"
               caption="Las tres métricas que importan en clasificación"
