@@ -1,6 +1,7 @@
 /**
  * fundamentos.ts — Ejercicios autocorregidos del módulo Fundamentos (N0–N1).
- * 5 ejercicios (BÁSICO → AVANZADO) + quiz conceptual en la página (QuizCard).
+ * Rampa completa: 5 ejercicios «desde cero absoluto» (E0.x, BÁSICO, bucles a
+ * mano) + 5 ejercicios originales (BÁSICO → AVANZADO) + quiz en la página.
  * Todas las solution_code pasan su propio test_code al 100 % (verificado con
  * python3 + numpy 2.x replicando el harness check()).
  */
@@ -8,6 +9,276 @@
 import type { Exercise } from '@/lib/exercises'
 
 export const FUNDAMENTOS_EXERCISES: Exercise[] = [
+  {
+    id: 'fund-cero-recta',
+    title: 'E0.1 · La recta: predecir con y = mx + b',
+    difficulty: 'BASICO',
+    xp: 10,
+    statement: [
+      'Tu primer «modelo» es una recta. Dados la pendiente $m$ y el intercepto $b$, el valor predicho es:',
+      '$$y = m\\,x + b$$',
+      'Implementa `recta(x, m, b)` que devuelva ese valor. Debe funcionar con números sueltos **y** con arrays de numpy (si no usas bucles, numpy se encarga solo).',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+def recta(x, m, b):
+    """
+    Evalúa la recta y = m*x + b.
+    x puede ser un número o un array de numpy.
+    """
+    # TODO: una sola línea
+    return 0.0
+
+print(recta(3, 2, 1))                      # esperado: 7
+print(recta(np.array([0.0, 1.0]), 2, 1))   # esperado: [1. 3.]
+`,
+    solution_code: `import numpy as np
+
+def recta(x, m, b):
+    return m * x + b
+`,
+    test_code: `
+check("Punto básico: recta(3, 2, 1) = 7", lambda: np.allclose(recta(3, 2, 1), 7),
+      msg="sustituye: y = m·x + b = 2·3 + 1 = 7")
+check("Cuando x = 0 queda solo b", lambda: np.allclose(recta(0, 5, -2), -2),
+      msg="y = m·0 + b = b: por eso b se llama intercepto")
+check("Pendiente negativa: la recta baja", lambda: np.allclose(recta(4, -0.5, 10), 8),
+      msg="y = −0.5·4 + 10 = 8")
+check("Funciona con arrays de numpy", lambda: np.allclose(recta(np.array([0., 1., 2.]), 2.0, 1.0), [1., 3., 5.]),
+      msg="sin bucles: m * x + b ya opera elemento a elemento sobre el array")
+`,
+    hints: [
+      'Es literalmente traducir la fórmula: `m * x + b`.',
+      'No pongas bucles: numpy multiplica el array entero por el escalar.',
+    ],
+  },
+  {
+    id: 'fund-cero-sumatoria',
+    title: 'E0.2 · La sumatoria Σ es un bucle',
+    difficulty: 'BASICO',
+    xp: 15,
+    statement: [
+      'La letra $\\Sigma$ (sigma mayúscula) solo significa «suma todo esto»:',
+      '$$\\sum_{i=1}^{N} x_i = x_1 + x_2 + \\dots + x_N$$',
+      'Implementa `sumatoria(valores)` que sume todos los números de la lista **con un bucle `for` escrito a mano** — sin `sum()` ni `np.sum()`: queremos que veas con tus ojos el bucle que esconde la Σ. Debe devolver un `float`.',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+def sumatoria(valores):
+    """
+    Suma todos los valores: eso es exactamente Σ.
+    Receta: total = 0.0; para cada v en valores: total += v.
+    """
+    # TODO: el bucle
+    return 0.0
+
+print(sumatoria([1, 2, 3]))  # esperado: 6.0
+`,
+    solution_code: `import numpy as np
+
+def sumatoria(valores):
+    total = 0.0
+    for v in valores:
+        total += v
+    return float(total)
+`,
+    test_code: `
+check("Σ [1, 2, 3] = 6", lambda: np.allclose(sumatoria([1, 2, 3]), 6.0),
+      msg="1 + 2 + 3 = 6: acumula cada valor en un total")
+check("Devuelve un float", lambda: isinstance(sumatoria([1, 2]), float),
+      msg="empieza el acumulador en 0.0 o envuelve el resultado con float(...)")
+check("La lista vacía suma 0", lambda: sumatoria([]) == 0.0,
+      msg="la suma de nada es 0 (el bucle simplemente no entra)")
+check("Acepta arrays de numpy y negativos", lambda: np.allclose(sumatoria(np.array([0.5, 1.5, -2.0])), 0.0),
+      msg="0.5 + 1.5 − 2.0 = 0")
+_rng = np.random.default_rng(1)
+_datos = _rng.normal(0, 5, 100)
+check("Coincide con np.sum en 100 datos aleatorios",
+      lambda: np.allclose(sumatoria(_datos), float(np.sum(_datos)), rtol=1e-8),
+      msg="tu bucle debe acumular exactamente lo mismo que np.sum")
+`,
+    hints: [
+      'Crea `total = 0.0` ANTES del bucle y súmale cada elemento dentro.',
+      '`for v in valores:` recorre la lista elemento a elemento.',
+      'Devuelve `float(total)` para asegurar el tipo.',
+    ],
+  },
+  {
+    id: 'fund-cero-media-varianza',
+    title: 'E0.3 · Media y varianza: centro y dispersión',
+    difficulty: 'BASICO',
+    xp: 15,
+    statement: [
+      'Los dos resúmenes más usados de unos datos. La **media** es «suma ÷ cuenta»; la **varianza** mide qué tan dispersos están: la media de las distancias **al cuadrado** a la media:',
+      '$$\\bar{x} = \\frac{1}{N}\\sum_{i=1}^{N} x_i, \\qquad \\mathrm{Var}(x) = \\frac{1}{N}\\sum_{i=1}^{N} (x_i - \\bar{x})^2$$',
+      'Implementa `media(datos)` y `varianza(datos)` con bucles a mano (sin `np.mean`/`np.var`: traduce la Σ tú mismo). Nota: dividimos entre $N$, no entre $N-1$.',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+def media(datos):
+    """La media: suma de los datos dividida entre cuántos hay."""
+    # TODO
+    return 0.0
+
+def varianza(datos):
+    """La varianza: media de (cada dato - la media)². Usa tu media()."""
+    # TODO: dos pasos — primero la media, luego otro bucle con las distancias
+    return 0.0
+
+print(media([2, 4, 6]))      # esperado: 4.0
+print(varianza([1, 2, 3]))   # esperado: 0.6666...
+`,
+    solution_code: `import numpy as np
+
+def media(datos):
+    total = 0.0
+    n = 0
+    for v in datos:
+        total += v
+        n += 1
+    return total / n
+
+def varianza(datos):
+    m = media(datos)
+    total = 0.0
+    n = 0
+    for v in datos:
+        total += (v - m) ** 2
+        n += 1
+    return total / n
+`,
+    test_code: `
+check("media([2, 4, 6]) = 4", lambda: np.allclose(media([2, 4, 6]), 4.0),
+      msg="(2 + 4 + 6) / 3 = 4: suma ÷ cuenta")
+check("varianza([1, 2, 3]) = 2/3", lambda: np.allclose(varianza([1, 2, 3]), 2.0 / 3.0),
+      msg="media 2 → desviaciones (−1, 0, 1) → cuadrados (1, 0, 1) → media 2/3")
+check("Datos constantes → varianza 0", lambda: varianza([7.0, 7.0, 7.0]) == 0.0,
+      msg="si todos los datos son iguales no hay dispersión")
+_rng = np.random.default_rng(4)
+_datos = _rng.normal(10, 3, 200)
+check("Tu media coincide con np.mean",
+      lambda: np.allclose(media(_datos), float(np.mean(_datos)), rtol=1e-8),
+      msg="la media es suma ÷ cuenta, nada más")
+check("Tu varianza coincide con np.var",
+      lambda: np.allclose(varianza(_datos), float(np.var(_datos)), rtol=1e-6),
+      msg="media de (v − media)² — ojo: dividimos entre N, no entre N−1")
+`,
+    hints: [
+      'En `media`: un bucle que acumula `total` y cuenta `n`; devuelve `total / n`.',
+      'En `varianza`: llama a tu propia `media(datos)` y haz un segundo bucle acumulando `(v - m) ** 2`.',
+      'La varianza también es una media: divide entre `n` al final.',
+    ],
+  },
+  {
+    id: 'fund-cero-producto-escalar',
+    title: 'E0.4 · El producto escalar, pareja a pareja',
+    difficulty: 'BASICO',
+    xp: 20,
+    statement: [
+      'La operación estrella del ML: multiplicar dos listas **pareja a pareja** y sumar los resultados:',
+      '$$a \\cdot b = \\sum_{i=1}^{n} a_i\\, b_i \\qquad [1,2,3] \\cdot [4,5,6] = 1{\\cdot}4 + 2{\\cdot}5 + 3{\\cdot}6 = 32$$',
+      'Implementa `producto_escalar(a, b)` con un bucle a mano (sin `np.dot`: luego compararás tu resultado con el de numpy). Acepta listas o arrays y devuelve un `float`.',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+def producto_escalar(a, b):
+    """
+    Producto escalar: a[0]*b[0] + a[1]*b[1] + ...
+    Bucle a mano: recorre los índices y acumula cada producto.
+    """
+    # TODO
+    return 0.0
+
+a = [1, 2, 3]
+b = [4, 5, 6]
+print(producto_escalar(a, b))  # esperado: 32.0
+print(np.dot(a, b))            # numpy dice lo mismo: 32
+`,
+    solution_code: `import numpy as np
+
+def producto_escalar(a, b):
+    total = 0.0
+    for i in range(len(a)):
+        total += a[i] * b[i]
+    return float(total)
+`,
+    test_code: `
+check("[1,2,3] · [4,5,6] = 32", lambda: np.allclose(producto_escalar([1, 2, 3], [4, 5, 6]), 32.0),
+      msg="1·4 + 2·5 + 3·6 = 4 + 10 + 18 = 32")
+check("Vectores perpendiculares → 0", lambda: np.allclose(producto_escalar([1, 0], [0, 1]), 0.0),
+      msg="[1,0] y [0,1] no comparten dirección: su producto escalar es 0")
+check("Devuelve un float", lambda: isinstance(producto_escalar([1.0], [2.0]), float),
+      msg="acumula desde 0.0 o envuelve el resultado con float(...)")
+check("Funciona con arrays y negativos",
+      lambda: np.allclose(producto_escalar(np.array([2., -1., 3.]), np.array([1., 4., 0.])), -2.0),
+      msg="2·1 + (−1)·4 + 3·0 = −2")
+_rng = np.random.default_rng(8)
+_a = _rng.normal(0, 1, 50)
+_b = _rng.normal(0, 1, 50)
+check("Coincide con np.dot en datos aleatorios",
+      lambda: np.allclose(producto_escalar(_a, _b), float(np.dot(_a, _b)), rtol=1e-8),
+      msg="tu bucle hace exactamente lo mismo que np.dot (numpy solo es más rápido)")
+`,
+    hints: [
+      'Recorre los índices: `for i in range(len(a)):` y acumula `a[i] * b[i]`.',
+      'Empieza el acumulador en `0.0` para que el resultado sea float.',
+      'Comprueba a mano el ejemplo: 1·4 + 2·5 + 3·6 = 32.',
+    ],
+  },
+  {
+    id: 'fund-cero-derivada-numerica',
+    title: 'E0.5 · La derivada, medida con números',
+    difficulty: 'BASICO',
+    xp: 20,
+    statement: [
+      'La derivada es la pendiente de una curva en un punto. Se aproxima con dos puntos muy cercanos (la «secante»):',
+      "$$f'(x) \\approx \\frac{f(x + h) - f(x)}{h} \\quad \\text{con } h \\text{ pequeña}$$",
+      'Implementa `pendiente(f, x, h=0.001)` que devuelva esa aproximación. Después comprobaremos la regla de la potencia: para $f(x) = x^2$, la pendiente en $x$ es $2x$.',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+def pendiente(f, x, h=0.001):
+    """
+    Aproximación numérica de la derivada de f en x:
+    (f(x + h) - f(x)) / h
+    """
+    # TODO: una sola línea
+    return 0.0
+
+def cuadrado(x):
+    return x ** 2
+
+print(pendiente(cuadrado, 2))   # esperado ≈ 4.0 (la pendiente de x² en x=2 es 2·2)
+print(pendiente(cuadrado, -3))  # esperado ≈ -6.0
+`,
+    solution_code: `import numpy as np
+
+def pendiente(f, x, h=0.001):
+    return (f(x + h) - f(x)) / h
+`,
+    test_code: `
+def _cuadrado(x):
+    return x ** 2
+
+check("La pendiente de x² en x=2 es ≈ 4", lambda: abs(pendiente(_cuadrado, 2) - 4.0) < 0.01,
+      msg="(f(x+h) − f(x)) / h con h pequeña; la derivada de x² es 2x = 4 en x=2")
+check("En x=−3 la pendiente es ≈ −6 (la curva baja)", lambda: abs(pendiente(_cuadrado, -3) - (-6.0)) < 0.01,
+      msg="a la izquierda del vértice la parábola decrece: pendiente negativa")
+check("Una recta tiene la misma pendiente en todas partes",
+      lambda: abs(pendiente(lambda x: 3 * x + 1, 7.5) - 3.0) < 0.01,
+      msg="la pendiente de 3x + 1 es 3 en cualquier punto")
+check("h más pequeña mejora la aproximación",
+      lambda: abs(pendiente(_cuadrado, 2, 0.0001) - 4.0) < abs(pendiente(_cuadrado, 2, 0.1) - 4.0),
+      msg="cuanto menor es h, más se acerca la secante a la tangente")
+check("En el mínimo de x² la pendiente es ≈ 0", lambda: abs(pendiente(_cuadrado, 0.0)) < 0.01,
+      msg="en el fondo del cuenco la tangente es horizontal: por eso el gradiente es 0 en el óptimo")
+`,
+    hints: [
+      'Es una traducción directa: `(f(x + h) - f(x)) / h`.',
+      '`f` es una función que recibes como parámetro: llámala como `f(x + h)`.',
+      'Con h = 0.001 la aproximación ya tiene 3 decimales buenos.',
+    ],
+  },
   {
     id: 'fund-mse',
     title: 'E1 · Tu primera pérdida',
