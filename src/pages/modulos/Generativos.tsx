@@ -8,6 +8,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { motion } from 'framer-motion'
 import { ArrowRight, ShieldAlert, Scale, Copyright, Leaf, Lock } from 'lucide-react'
+import { InlineMath } from 'react-katex'
 import ChapterNav from '@/components/ChapterNav'
 import ModuleHero from '@/components/ModuleHero'
 import FormulaBlock from '@/components/FormulaBlock'
@@ -22,6 +23,9 @@ import DiffusionDemo from '@/components/generativos/DiffusionDemo'
 import '@/data/exercises/generativos'
 
 const SECTIONS = [
+  { id: 'idea', label: 'A · La idea sin fórmulas' },
+  { id: 'repaso', label: 'B · Repaso exprés' },
+  { id: 'glosario', label: 'C · Glosario de símbolos' },
   { id: 'problema', label: '1 · El problema generativo' },
   { id: 'vae', label: '2 · VAE' },
   { id: 'gan', label: '3 · GAN: el juego minimax' },
@@ -75,6 +79,49 @@ function Section({
 
 function Prose({ children }: { children: ReactNode }) {
   return <div className="max-w-[720px] space-y-4 text-base leading-[1.75] text-muted">{children}</div>
+}
+
+/** Aviso antes de una fórmula: qué hace, sin notación. */
+function Llano({ children }: { children: ReactNode }) {
+  return (
+    <div className="mb-5 max-w-[720px] rounded-lg border-l-2 border-lime/60 bg-lime/5 px-4 py-3">
+      <div className="mb-1 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-lime">// en castellano llano</div>
+      <p className="text-sm leading-relaxed text-muted">{children}</p>
+    </div>
+  )
+}
+
+/** Checklist de prerrequisitos con enlace al módulo donde se explican. */
+function Repaso({ items }: { items: { q: string; d: string; to: string; toLabel: string }[] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {items.map((r) => (
+        <div key={r.q} className="rounded-xl border border-line bg-panel px-5 py-4 transition-all hover:-translate-y-1 hover:border-cyan/50">
+          <div className="mb-1.5 font-display text-sm font-semibold text-ink">{r.q}</div>
+          <p className="mb-2 text-xs leading-relaxed text-muted">{r.d}</p>
+          <Link to={r.to} className="font-mono text-xs text-cyan transition-colors hover:text-ink">
+            → {r.toLabel}
+          </Link>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Tarjetas símbolo → significado en una línea. */
+function Glosario({ items }: { items: [string, string][] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {items.map(([sym, desc]) => (
+        <div key={sym} className="flex items-start gap-3 rounded-xl border border-line bg-panel px-4 py-3">
+          <span className="inline-flex min-w-[2.75rem] shrink-0 justify-center rounded-md border border-violet/40 bg-violet/10 px-2 py-1 font-mono text-sm text-violet">
+            <InlineMath math={sym} />
+          </span>
+          <span className="text-xs leading-relaxed text-muted">{desc}</span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 const ETHICS = [
@@ -131,6 +178,78 @@ export default function Generativos() {
         <ChapterNav sections={SECTIONS} className="pt-10" />
 
         <div className="min-w-0 flex-1">
+          {/* ---------------- S0a · La idea sin fórmulas ---------------- */}
+          <Section id="idea" kicker="// A · ANTES DE EMPEZAR" title="La idea sin fórmulas">
+            <Prose>
+              <p>
+                Hasta ahora tus modelos respondían preguntas («¿esto es un gato o un perro?»). Este módulo es
+                al revés: <strong className="text-ink">fabricar datos nuevos que parecen reales</strong> — caras
+                de personas que no existen, imágenes a partir de una frase. El truco de partida es
+                sorprendentemente simple: saca unos números al azar de la campana de Gauss (como tirar dados) y
+                aprende una función — una red neuronal como las que ya conoces — que los transforma poco a poco
+                hasta que parecen un dato auténtico.
+              </p>
+              <p>
+                Las tres familias del módulo son tres recetas para aprender esa transformación. El{' '}
+                <strong className="text-ink">VAE</strong> comprime cada dato a un «código» corto y aprende a
+                reconstruirlo, obligando a que los códigos ocupen un espacio ordenado y continuo: así puedes
+                moverte por ese espacio e ir morfando una cosa en otra. La{' '}
+                <strong className="text-ink">GAN</strong> convierte el aprendizaje en un duelo: un{' '}
+                <strong className="text-ink">falsificador</strong> que hace billetes falsos y un{' '}
+                <strong className="text-ink">detective</strong> que intenta pillarle; cada uno mejora para
+                vencer al otro, hasta que los billetes falsos son indistinguibles. Y la{' '}
+                <strong className="text-ink">difusión</strong> — la tecnología detrás de DALL·E o Stable
+                Diffusion — hace algo aún más raro y más elegante: ensucia fotos con ruido paso a paso hasta
+                dejar solo estática, y luego aprende el camino de vuelta: quitar el ruido un poquito cada vez.
+                Generar es empezar en estática pura y limpiar.
+              </p>
+              <p>
+                Todo lo demás del módulo — latentes, ELBO, minimax, schedules de ruido — son los detalles
+                técnicos de estas tres recetas, más una pausa necesaria para hablar de lo que significa
+                fabricar realidad falsa.
+              </p>
+            </Prose>
+          </Section>
+
+          {/* ---------------- S0b · Repaso exprés ---------------- */}
+          <Section id="repaso" kicker="// B · PRERREQUISITOS EN 1 MINUTO" title="Repaso exprés">
+            <Prose>
+              <p>
+                Las ideas de probabilidad que usa este módulo, en una frase cada una. Pulsa el enlace si algo
+                necesita repaso.
+              </p>
+            </Prose>
+            <Repaso items={[
+              { q: '¿Qué es la campana de Gauss (normal)?', d: 'La forma típica del azar: casi todo cae cerca del centro y las colas se desvanecen. De ahí salen los números de partida.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Qué son media (μ) y desviación (σ)?', d: 'El centro de la campana y su anchura: dónde se concentra el azar y cuánto se dispersa.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Qué es una probabilidad p(x)?', d: 'Un número entre 0 y 1 que dice cuán esperable es cada dato. «Aprender la distribución» es aprender ese mapa completo.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Qué es una esperanza 𝔼?', d: 'El promedio de algo sobre muchos casos. Como la media de tirar un dado muchísimas veces.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Recuerdas qué es un encoder/decoder?', d: 'Dos redes encadenadas: una comprime el dato a un código y otra lo reconstruye. Son las mismas capas que ya conoces.', to: '/modulos/redes-neuronales', toLabel: 'repásalo en Redes Neuronales' },
+              { q: '¿Y las convoluciones?', d: 'Los generadores de imágenes usan capas convolucionales por dentro: las lupas del módulo anterior.', to: '/modulos/cnn', toLabel: 'repásalo en CNN' },
+            ]} />
+          </Section>
+
+          {/* ---------------- S0c · Glosario ---------------- */}
+          <Section id="glosario" kicker="// C · DICCIONARIO DEL MÓDULO" title="Glosario de símbolos">
+            <Prose>
+              <p>Los símbolos que aparecerán en esta página, traducidos en una línea.</p>
+            </Prose>
+            <Glosario items={[
+              [String.raw`z`, 'el código o semilla aleatoria: los números de los que parte toda la generación'],
+              [String.raw`\mathcal{N}(0, I)`, 'la campana de Gauss estándar: «tira los dados» en forma matemática'],
+              [String.raw`\mu`, 'mu: el centro de una campana de Gauss'],
+              [String.raw`\sigma`, 'sigma: la anchura de la campana; también la sigmoide, según el contexto'],
+              [String.raw`\varepsilon`, 'épsilon: el azar puro que se inyecta; sale de tirar los dados, no de la red'],
+              [String.raw`\mathbb{E}[\cdot]`, 'esperanza: el promedio sobre muchísimos casos'],
+              [String.raw`D_{KL}`, 'distancia KL: cuánto se diferencian dos distribuciones; la «multa» por desordenar el latente'],
+              [String.raw`G`, 'el generador: el falsificador que fabrica datos a partir de ruido'],
+              [String.raw`D`, 'el discriminador: el detective que puntúa si un dato es real o falso'],
+              [String.raw`\min_G \max_D`, '«G intenta empeorar lo que D intenta mejorar»: el tira y afloja del duelo'],
+              [String.raw`\beta_t`, 'cuánta suciedad (ruido) se añade en el paso t de la difusión'],
+              [String.raw`\log`, 'logaritmo: convierte multiplicaciones de probabilidades en sumas manejables'],
+            ]} />
+          </Section>
+
           {/* ---------------- S1 · El problema generativo ---------------- */}
           <Section id="problema" kicker="// 01 · DISCRIMINAR VS GENERAR" title="El problema generativo">
             <Prose>
@@ -150,6 +269,11 @@ export default function Generativos() {
                 <em>decoder</em>) que la deforma hasta la distribución compleja:
               </p>
             </Prose>
+            <Llano>
+              Generar un dato nuevo es una receta de dos pasos: tira los dados (saca números al azar de la
+              campana de Gauss) y pásalos por una función aprendida que los «deforma» hasta que parecen un
+              dato real. La fórmula dice exactamente eso: azar → función → algo indistinguible de los datos.
+            </Llano>
             <div className="my-8">
               <FormulaBlock
                 formula="z \sim \mathcal{N}(0, I) \;\xrightarrow{\;D_\theta\;}\; x = D_\theta(z) \sim p_{\text{datos}}(x)"
@@ -190,6 +314,12 @@ export default function Generativos() {
                 atravesarla. La solución es el truco de la reparametrización:
               </p>
             </Prose>
+            <Llano>
+              Meter azar en medio de la red bloquea el aprendizaje, porque la culpa del error no puede
+              atravesar una tirada de dados. El truco: genera el azar fuera (ε) y mézclalo con una fórmula
+              normal y corriente — multiplicar y sumar — que sí deja pasar las instrucciones de mejora hasta
+              las perillas μ y σ.
+            </Llano>
             <div className="my-8">
               <FormulaBlock
                 formula="z = \mu + \sigma \odot \varepsilon, \qquad \varepsilon \sim \mathcal{N}(0, I)"
@@ -207,6 +337,11 @@ export default function Generativos() {
                 suma de dos términos en tensión permanente:
               </p>
             </Prose>
+            <Llano>
+              El objetivo del VAE es un equilibrio entre dos deseos: reconstruir bien el dato original y, al
+              mismo tiempo, mantener los códigos ordenados y juntitos cerca del centro para que el espacio sea
+              navegable. La fórmula pone ambos en la misma balanza: si gana uno, sufre el otro.
+            </Llano>
             <div className="my-8">
               <FormulaBlock
                 formula="\mathcal{L} = \underbrace{\mathbb{E}_q[\log p(x \mid z)]}_{\text{reconstrucción}} \;-\; \underbrace{D_{KL}\left(q(z \mid x) \,\|\, p(z)\right)}_{\text{regularizador}}"
@@ -242,6 +377,11 @@ export default function Generativos() {
                 estima la probabilidad de que una muestra sea real. Cada uno mejora intentando vencer al otro:
               </p>
             </Prose>
+            <Llano>
+              Todo el duelo en una sola puntuación: el detective intenta subirla (decir «real» a los datos
+              auténticos y «falso» a los fabricados) y el falsificador intenta bajarla (que sus piezas cuelen
+              como reales). Entrenar es alternar turnos: mueve D un paso, mueve G un paso, y repite.
+            </Llano>
             <div className="my-8">
               <FormulaBlock
                 formula="\min_G \max_D \; V(D, G) = \mathbb{E}_{x}[\log D(x)] + \mathbb{E}_{z}[\log\!\left(1 - D(G(z))\right)]"
@@ -278,6 +418,11 @@ export default function Generativos() {
                 <TeX content="$\\mathcal{N}(0, I)$" />:
               </p>
             </Prose>
+            <Llano>
+              Ensuciar una foto es fácil y no hay que aprender nada: en cada paso le echas un chorrito de ruido
+              encima. La fórmula de la derecha es un atajo muy práctico: te dice directamente cuánta foto
+              original sobrevive tras t pasos, sin tener que simularlos uno a uno.
+            </Llano>
             <div className="my-8">
               <FormulaBlock
                 formula="q(x_t \mid x_{t-1}) = \mathcal{N}\!\left(\sqrt{1 - \beta_t}\, x_{t-1}, \; \beta_t I\right) \qquad\Longleftrightarrow\qquad x_t = \sqrt{\bar{\alpha}_t}\, x_0 + \sqrt{1 - \bar{\alpha}_t}\, \varepsilon"
