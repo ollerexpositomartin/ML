@@ -6,6 +6,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ArrowRight } from 'lucide-react'
+import { InlineMath } from 'react-katex'
 import ModuleHero from '@/components/ModuleHero'
 import ChapterNav from '@/components/ChapterNav'
 import FormulaBlock from '@/components/FormulaBlock'
@@ -20,6 +21,9 @@ import DemoCausalMask from '@/components/transformers/DemoCausalMask'
 import DemoTokenizador from '@/components/transformers/DemoTokenizador'
 
 const SECTIONS = [
+  { id: 'idea', label: '6.A La idea sin fórmulas' },
+  { id: 'repaso', label: '6.B Repaso exprés' },
+  { id: 'glosario', label: '6.C Glosario de símbolos' },
   { id: 'atencion', label: '6.1 Self-attention Q·K·V' },
   { id: 'multihead', label: '6.2 Multi-head y posición' },
   { id: 'arquitectura', label: '6.3 Arquitectura completa' },
@@ -45,6 +49,49 @@ function Prose({ content }: { content: string }) {
   return <TeXParagraphs content={content} className="max-w-[720px] text-[0.95rem] leading-[1.75] text-muted" />
 }
 
+/** Aviso antes de una fórmula: qué hace, sin notación. */
+function Llano({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-lg border-l-2 border-lime/60 bg-lime/5 px-4 py-3">
+      <div className="mb-1 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-lime">// en castellano llano</div>
+      <p className="max-w-[720px] text-sm leading-relaxed text-muted">{children}</p>
+    </div>
+  )
+}
+
+/** Checklist de prerrequisitos con enlace al módulo donde se explican. */
+function Repaso({ items }: { items: { q: string; d: string; to: string; toLabel: string }[] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {items.map((r) => (
+        <div key={r.q} className="rounded-xl border border-line bg-panel px-5 py-4 transition-all hover:-translate-y-1 hover:border-cyan/50">
+          <div className="mb-1.5 font-display text-sm font-semibold text-ink">{r.q}</div>
+          <p className="mb-2 text-xs leading-relaxed text-muted">{r.d}</p>
+          <Link to={r.to} className="font-mono text-xs text-cyan transition-colors hover:text-ink">
+            → {r.toLabel}
+          </Link>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Tarjetas símbolo → significado en una línea. */
+function Glosario({ items }: { items: [string, string][] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {items.map(([sym, desc]) => (
+        <div key={sym} className="flex items-start gap-3 rounded-xl border border-line bg-panel px-4 py-3">
+          <span className="inline-flex min-w-[2.75rem] shrink-0 justify-center rounded-md border border-violet/40 bg-violet/10 px-2 py-1 font-mono text-sm text-violet">
+            <InlineMath math={sym} />
+          </span>
+          <span className="text-xs leading-relaxed text-muted">{desc}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function Transformers() {
   const [eAtencion, ePE, eMascara, eFFN, eMultihead] = TRANSFORMERS_EXERCISES
 
@@ -64,6 +111,50 @@ export default function Transformers() {
         <ChapterNav sections={SECTIONS} />
 
         <div className="min-w-0 max-w-[860px] flex-1">
+          {/* S0a · La idea sin fórmulas */}
+          <Section id="idea" kicker="6.A · ANTES DE EMPEZAR" title="La idea sin fórmulas">
+            <Prose
+              content={[
+                'La RNN del módulo anterior leía la frase en fila india: palabra a palabra, empujando toda la memoria en una sola nota. El Transformer propone algo radicalmente distinto: **una reunión**. Todas las palabras se sientan a la mesa a la vez, y cada una le pregunta a todas las demás: «¿cuánto me importas para entender mi papel en esta frase?». «La perra perseguía al gato porque estaba hambrienta» — la palabra «estaba» necesita mirar a «perra» para saber quién tenía hambre.',
+                '',
+                'Esa ronda de preguntas es la **atención**, y funciona con tres papeles que aprende la red: cada palabra anuncia **qué busca** (query), **qué ofrece** (key) y **qué información reparte si la eligen** (value). El parecido entre lo que una busca y lo que otra ofrece se convierte en un porcentaje, y cada palabra sale de la reunión con un cóctel de información de las demás, mezclado según esos porcentajes.',
+                '',
+                'Dos detalles lo completan. Primero: como todo ocurre a la vez (no hay fila ni nota mental), las GPUs pueden hacerlo masivamente en paralelo — es la razón por la que estos modelos escalaron hasta los LLM de hoy. Segundo: en la reunión nadie ve el orden de las sillas, así que hay que pegarle a cada palabra una **etiqueta con su posición**. Y en vez de una sola reunión se hacen varias en paralelo (multi-head), cada una fijándose en relaciones distintas. BERT y GPT son la misma máquina con dos reglas de juego: leer la frase entera para entenderla, o predecir la siguiente palabra sin mirar el futuro.',
+              ].join('\n')}
+            />
+          </Section>
+
+          {/* S0b · Repaso exprés */}
+          <Section id="repaso" kicker="6.B · PRERREQUISITOS EN 1 MINUTO" title="Repaso exprés">
+            <Prose content="Cuatro ideas básicas y el módulo que te deja a las puertas de este. Pulsa el enlace si algo necesita repaso." />
+            <Repaso items={[
+              { q: '¿Qué es un embedding?', d: 'Convertir cada palabra en un vector: un punto en un mapa donde las palabras parecidas quedan cerca.', to: '/modulos/secuencias', toLabel: 'repásalo en Secuencias' },
+              { q: '¿Qué es el producto punto?', d: 'Multiplicar dos listas elemento a elemento y sumar: mide parecido. Es el «¿cuánto me importas?» de la atención.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Qué hace softmax?', d: 'Convierte una lista de puntuaciones en porcentajes que suman 100%. Así se reparte la atención.', to: '/modulos/secuencias', toLabel: 'repásalo en Secuencias' },
+              { q: '¿Qué es una multiplicación de matrices?', d: 'Aplicar la misma transformación a muchos vectores a la vez: es lo que hace que todo vaya en paralelo.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
+              { q: '¿Recuerdas la atención de Bahdanau?', d: 'La idea de «mirar atrás y repartir porcentajes» nació para traducir. Aquí se quita la RNN y se queda solo eso.', to: '/modulos/secuencias', toLabel: 'repásalo en Secuencias' },
+            ]} />
+          </Section>
+
+          {/* S0c · Glosario */}
+          <Section id="glosario" kicker="6.C · DICCIONARIO DEL MÓDULO" title="Glosario de símbolos">
+            <Prose content="Los símbolos que aparecerán en esta página, traducidos en una línea." />
+            <Glosario items={[
+              [String.raw`Q`, 'queries: lo que cada palabra está buscando en las demás'],
+              [String.raw`K`, 'keys: lo que cada palabra anuncia que ofrece'],
+              [String.raw`V`, 'values: la información que cada palabra reparte si la eligen'],
+              [String.raw`X`, 'la tabla con todos los embeddings de la frase, uno por fila'],
+              [String.raw`W^Q, W^K, W^V`, 'tablas de pesos aprendidas que transforman cada embedding en su query, key y value'],
+              [String.raw`\mathrm{softmax}`, 'convierte puntuaciones en porcentajes que suman 1: el reparto de atención'],
+              [String.raw`d_k`, 'tamaño de cada vector query/key; dividir entre su raíz evita números gigantes'],
+              [String.raw`QK^{\top}`, 'la tabla n×n de «cuánto le importa a cada palabra cada otra»'],
+              [String.raw`{}^{\top}`, 'transponer: girar una tabla cambiando filas por columnas'],
+              [String.raw`PE`, 'codificación posicional: la etiqueta que dice a cada palabra en qué posición va'],
+              [String.raw`O(n^2)`, 'el coste crece al cuadrado de la longitud: doble de texto = 4× de cómputo'],
+              [String.raw`p(x_t \mid x_{<t})`, '«la probabilidad de la siguiente palabra dadas las anteriores»: el juego de GPT'],
+            ]} />
+          </Section>
+
           {/* S1 · Self-attention */}
           <Section id="atencion" kicker="6.1 · SELF-ATTENTION" title="Q, K, V: preguntar, ofrecer, contar">
             <Prose
@@ -75,6 +166,12 @@ export default function Transformers() {
                 'La afinidad entre una query y todas las keys (un producto punto) decide cuánto valor de cada token entra en la mezcla. Y todo son proyecciones lineales aprendidas de la misma matriz de embeddings $X$:',
               ].join('\n')}
             />
+            <Llano>
+              Cada palabra compara su pregunta (Q) con las ofertas (K) de todas: ese parecido se convierte en
+              porcentajes vía softmax, y con esos porcentajes se mezclan los contenidos (V). El resultado de
+              cada palabra es un cóctel de las demás. Dividir entre la raíz solo evita que los porcentajes se
+              vuelvan extremos cuando los vectores son largos.
+            </Llano>
             <FormulaBlock
               formula="\mathrm{Attention}(Q, K, V) = \mathrm{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}}\right) V, \qquad Q = XW^Q,\; K = XW^K,\; V = XW^V"
               caption="Scaled dot-product attention: el corazón del Transformer"
@@ -98,6 +195,11 @@ export default function Transformers() {
                 'Una sola atención promedia demasiado. **Multi-head attention** parte las proyecciones en $h$ sub-espacios independientes que atienden en paralelo — una cabeza puede especializarse en sintaxis, otra en posición, otra en correferencia — y concatena el resultado:',
               ].join('\n')}
             />
+            <Llano>
+              En vez de una sola ronda de preguntas, se hacen varias en paralelo (las cabezas), cada una
+              fijándose en relaciones distintas — una en gramática, otra en posiciones, otra en quién se
+              refiere a quién. Al final se apilan las conclusiones de todas y se mezclan en una sola.
+            </Llano>
             <FormulaBlock
               formula="\mathrm{MultiHead}(X) = \mathrm{Concat}(\mathrm{head}_1, \dots, \mathrm{head}_h)\, W^O"
               caption="h cabezas en paralelo, una proyección de salida"
@@ -110,6 +212,11 @@ export default function Transformers() {
             <Prose
               content="Pero hay un detalle demoledor: la atención es una **operación sobre conjuntos** — no ve el orden. «El perro muerde al hombre» y «el hombre muerde al perro» producen exactamente la misma salida. El paper original lo arregla sumando a cada embedding una firma sinusoidal de su posición:"
             />
+            <Llano>
+              Como la atención no ve el orden, a cada palabra se le suma una «firma» calculada de su posición:
+              ondas de distinta velocidad, como las rayas de un código de barras que dice «soy la palabra
+              número 7». No se aprende nada aquí: la firma sale de una receta fija.
+            </Llano>
             <FormulaBlock
               formula="PE_{(pos,\, 2i)} = \sin\!\left(\frac{pos}{10000^{2i/d}}\right), \qquad PE_{(pos,\, 2i+1)} = \cos\!\left(\frac{pos}{10000^{2i/d}}\right)"
               caption="Codificación posicional: longitudes de onda de ~2π a ~2π·10000"
