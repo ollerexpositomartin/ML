@@ -1,5 +1,5 @@
 /**
- * Módulo Transformers (N5b) — /modulos/transformers
+ * Módulo Transformers (N5) — /modulos/transformers
  * Self-attention Q/K/V → multi-head + PE → arquitectura (scroll-story pinned GSAP)
  * → BERT vs GPT → tokenización → ejercicios.
  */
@@ -13,6 +13,7 @@ import FormulaBlock from '@/components/FormulaBlock'
 import ExerciseCard from '@/components/ExerciseCard'
 import QuizCard from '@/components/QuizCard'
 import { TeXParagraphs, TeX } from '@/lib/katex-content'
+import { getExercise } from '@/lib/exercises'
 import { TRANSFORMERS_EXERCISES } from '@/data/exercises/transformers'
 import DemoAtencion from '@/components/transformers/DemoAtencion'
 import DemoPosicional from '@/components/transformers/DemoPosicional'
@@ -21,16 +22,17 @@ import DemoCausalMask from '@/components/transformers/DemoCausalMask'
 import DemoTokenizador from '@/components/transformers/DemoTokenizador'
 
 const SECTIONS = [
-  { id: 'idea', label: '6.A La idea sin fórmulas' },
-  { id: 'repaso', label: '6.B Repaso exprés' },
-  { id: 'glosario', label: '6.C Glosario de símbolos' },
-  { id: 'atencion', label: '6.1 Self-attention Q·K·V' },
-  { id: 'multihead', label: '6.2 Multi-head y posición' },
-  { id: 'arquitectura', label: '6.3 Arquitectura completa' },
-  { id: 'bertgpt', label: '6.4 BERT, GPT y escala' },
-  { id: 'tokenizacion', label: '6.5 Tokenización' },
-  { id: 'ejercicios', label: '6.6 Ejercicios' },
-  { id: 'siguiente', label: '6.7 Siguiente nivel' },
+  { id: 'idea', label: '5.A La idea sin fórmulas' },
+  { id: 'repaso', label: '5.B Repaso exprés' },
+  { id: 'glosario', label: '5.C Glosario de símbolos' },
+  { id: 'atencion', label: '5.1 Self-attention Q·K·V' },
+  { id: 'multihead', label: '5.2 Multi-head y posición' },
+  { id: 'arquitectura', label: '5.3 Arquitectura completa' },
+  { id: 'bertgpt', label: '5.4 BERT, GPT y escala' },
+  { id: 'tokenizacion', label: '5.5 Tokenización' },
+  { id: 'ejercicios', label: '5.6 Ejercicios' },
+  { id: 'proyecto', label: '5.7 Proyecto: sentimiento' },
+  { id: 'siguiente', label: '5.8 Siguiente nivel' },
 ]
 
 function Section({ id, kicker, title, children }: { id: string; kicker: string; title: string; children: ReactNode }) {
@@ -99,10 +101,10 @@ export default function Transformers() {
     <div>
       <ModuleHero
         level="N5"
-        kicker="// NIVEL 6 · LA ARQUITECTURA QUE LO CAMBIÓ TODO"
+        kicker="// NIVEL 5 · LA ARQUITECTURA QUE LO CAMBIÓ TODO"
         title="Transformers: la atención es todo lo que necesitas"
         abstract="En 2017, un paper eliminó la recurrencia y la convolución y dejó solo atención. El resultado: BERT, GPT y la era de los LLM. Aquí derivas Q, K y V, recorres la arquitectura capa a capa y implementas la atención tú mismo."
-        meta={{ duration: '≈ 5 h', demos: 6, exercises: 6, xp: 600 }}
+        meta={{ duration: '≈ 5 h', demos: 6, exercises: 9, xp: 870 }}
         art="/art-transformers.png"
         color="#FBBF24"
       />
@@ -112,7 +114,7 @@ export default function Transformers() {
 
         <div className="min-w-0 max-w-[860px] flex-1">
           {/* S0a · La idea sin fórmulas */}
-          <Section id="idea" kicker="6.A · ANTES DE EMPEZAR" title="La idea sin fórmulas">
+          <Section id="idea" kicker="5.A · ANTES DE EMPEZAR" title="La idea sin fórmulas">
             <Prose
               content={[
                 'La RNN del módulo anterior leía la frase en fila india: palabra a palabra, empujando toda la memoria en una sola nota. El Transformer propone algo radicalmente distinto: **una reunión**. Todas las palabras se sientan a la mesa a la vez, y cada una le pregunta a todas las demás: «¿cuánto me importas para entender mi papel en esta frase?». «La perra perseguía al gato porque estaba hambrienta» — la palabra «estaba» necesita mirar a «perra» para saber quién tenía hambre.',
@@ -125,7 +127,7 @@ export default function Transformers() {
           </Section>
 
           {/* S0b · Repaso exprés */}
-          <Section id="repaso" kicker="6.B · PRERREQUISITOS EN 1 MINUTO" title="Repaso exprés">
+          <Section id="repaso" kicker="5.B · PRERREQUISITOS EN 1 MINUTO" title="Repaso exprés">
             <Prose content="Cuatro ideas básicas y el módulo que te deja a las puertas de este. Pulsa el enlace si algo necesita repaso." />
             <Repaso items={[
               { q: '¿Qué es un embedding?', d: 'Convertir cada palabra en un vector: un punto en un mapa donde las palabras parecidas quedan cerca.', to: '/modulos/secuencias', toLabel: 'repásalo en Secuencias' },
@@ -137,7 +139,7 @@ export default function Transformers() {
           </Section>
 
           {/* S0c · Glosario */}
-          <Section id="glosario" kicker="6.C · DICCIONARIO DEL MÓDULO" title="Glosario de símbolos">
+          <Section id="glosario" kicker="5.C · DICCIONARIO DEL MÓDULO" title="Glosario de símbolos">
             <Prose content="Los símbolos que aparecerán en esta página, traducidos en una línea." />
             <Glosario items={[
               [String.raw`Q`, 'queries: lo que cada palabra está buscando en las demás'],
@@ -156,7 +158,7 @@ export default function Transformers() {
           </Section>
 
           {/* S1 · Self-attention */}
-          <Section id="atencion" kicker="6.1 · SELF-ATTENTION" title="Q, K, V: preguntar, ofrecer, contar">
+          <Section id="atencion" kicker="5.1 · SELF-ATTENTION" title="Q, K, V: preguntar, ofrecer, contar">
             <Prose
               content={[
                 'La recurrencia procesa la secuencia como una cola: un token cada vez, memoria embutida en un solo estado. La **self-attention** rompe la cola: todos los tokens se hablan *a la vez*. La metáfora operativa es una base de datos diferenciable:',
@@ -189,7 +191,7 @@ export default function Transformers() {
           </Section>
 
           {/* S2 · Multi-head + PE */}
-          <Section id="multihead" kicker="6.2 · MULTI-HEAD Y POSICIÓN" title="Muchas miradas y un reloj">
+          <Section id="multihead" kicker="5.2 · MULTI-HEAD Y POSICIÓN" title="Muchas miradas y un reloj">
             <Prose
               content={[
                 'Una sola atención promedia demasiado. **Multi-head attention** parte las proyecciones en $h$ sub-espacios independientes que atienden en paralelo — una cabeza puede especializarse en sintaxis, otra en posición, otra en correferencia — y concatena el resultado:',
@@ -233,7 +235,7 @@ export default function Transformers() {
           {/* S3 · Scroll story pinned (GSAP) */}
           <section id="arquitectura" className="scroll-mt-16 border-b border-line/50 py-10">
             <div className="mb-3 font-mono text-[0.78rem] uppercase tracking-[0.14em] text-cyan">
-              // 6.3 · ARQUITECTURA COMPLETA
+              // 5.3 · ARQUITECTURA COMPLETA
             </div>
             <h2 className="mb-2 font-display text-[clamp(1.8rem,3.2vw,2.6rem)] font-bold leading-tight tracking-[-0.03em] text-ink">
               La máquina completa, capa a capa
@@ -246,7 +248,7 @@ export default function Transformers() {
           </section>
 
           {/* S4 · BERT vs GPT */}
-          <Section id="bertgpt" kicker="6.4 · BERT, GPT Y ESCALA" title="Dos religiones: entender o generar">
+          <Section id="bertgpt" kicker="5.4 · BERT, GPT Y ESCALA" title="Dos religiones: entender o generar">
             <Prose
               content={[
                 'La misma arquitectura da dos familias opuestas según qué mitad uses y qué máscara apliques. **BERT** (2018) se queda el *encoder*: atención bidireccional, pre-entrenado tapando palabras al azar (*masked language model*) — ve la frase entera y aprende a **entender**. **GPT** (2018→) se queda el *decoder*: máscara causal que prohíbe mirar el futuro, entrenado para predecir el siguiente token $p(x_t \\mid x_{<t})$ — aprende a **generar**. Los *encoder-decoder* (T5, los transformers de traducción) combinan ambos.',
@@ -285,13 +287,13 @@ export default function Transformers() {
               </table>
             </div>
             <Prose
-              content="El pipeline moderno tiene tres actos: **pre-entrenamiento** (predecir texto de internet, semanas de cómputo), ***fine-tuning* / instrucciones** (especializar con ejemplos curados) y **RLHF** (humanos puntúan respuestas y el modelo se alinea). Y el fenómeno que financió la carrera actual: las **leyes de escala** — la pérdida cae como una ley de potencia suave y predecible con parámetros, datos y cómputo; a partir de ciertos umbrales emergen habilidades (aritmética, traducción few-shot) que nadie programó."
+              content="El pipeline moderno tiene tres actos: **pre-entrenamiento** (predecir texto de internet, semanas de cómputo), **fine-tuning / instrucciones** (especializar con ejemplos curados) y **RLHF** (humanos puntúan respuestas y el modelo se alinea). Y el fenómeno que financió la carrera actual: las **leyes de escala** — la pérdida cae como una ley de potencia suave y predecible con parámetros, datos y cómputo; a partir de ciertos umbrales emergen habilidades (aritmética, traducción few-shot) que nadie programó."
             />
             <DemoCausalMask />
           </Section>
 
           {/* S5 · Tokenización */}
-          <Section id="tokenizacion" kicker="6.5 · TOKENIZACIÓN" title="El texto hecho números">
+          <Section id="tokenizacion" kicker="5.5 · TOKENIZACIÓN" title="El texto hecho números">
             <Prose
               content={[
                 'Antes de tocar la arquitectura hay que trocear el texto. ¿Por caracteres? Secuencias eternas. ¿Por palabras? Vocabulario infinito y fuera de vocabulario en cuanto alguien escribe «transformacionéis». La solución universal es **BPE** (*Byte-Pair Encoding*): empieza con los caracteres y **fusiona el par más frecuente** del corpus una y otra vez hasta llenar un vocabulario de ~32k–128k piezas.',
@@ -303,7 +305,7 @@ export default function Transformers() {
           </Section>
 
           {/* S6 · Ejercicios */}
-          <Section id="ejercicios" kicker="6.6 · EJERCICIOS" title="Implementa la atención tú mismo">
+          <Section id="ejercicios" kicker="5.6 · EJERCICIOS" title="Implementa la atención tú mismo">
             <div className="space-y-6">
               <ExerciseCard exercise={eAtencion} />
               <ExerciseCard exercise={ePE} />
@@ -383,15 +385,33 @@ export default function Transformers() {
             </div>
           </Section>
 
+          {/* S6b · Proyecto práctico: análisis de sentimiento */}
+          <Section id="proyecto" kicker="5.7 · PROYECTO PRÁCTICO" title="Análisis de sentimiento con self-attention">
+            <Prose
+              content={[
+                'El caso de uso que estrenó a BERT en producto: **clasificar reseñas automáticamente**. Un ecommerce recibe miles de opiniones al día y necesita detectar las negativas para reaccionar — es *sentiment analysis*, y sigue siendo una de las tareas más comunes de NLP en empresa (voz del cliente, moderación, monitorización de marca). Aquí construirás el pipeline completo: embeddings + codificación posicional, padding con máscara, una capa de self-attention, pooling y cabeza clasificadora.',
+                '',
+                'El dataset sintético esconde la trampa pedagógica perfecta: **las negaciones**. «No me gusta nada» es negativa y «no es malo» es positiva — una bolsa de palabras (que solo cuenta tokens sueltos) las falla inevitablemente, porque «malo» y «gusta» dicen lo contrario cuando hay un «no» delante. La atención, en cambio, puede aprender a **combinar el «no» con el adjetivo**: es exactamente la capacidad que hizo a los Transformers superiores a todo lo anterior en lenguaje.',
+                '',
+                'Y lo harás sin frameworks: forward exacto contra referencia y después **backpropagation escrita a mano** a través de la atención para entrenar los pesos hasta superar el 90% de accuracy — incluidas las reseñas con negación.',
+              ].join('\n')}
+            />
+            <div className="space-y-6">
+              <ExerciseCard exercise={getExercise('transformers-sent-embed')!} />
+              <ExerciseCard exercise={getExercise('transformers-sent-attention')!} />
+              <ExerciseCard exercise={getExercise('transformers-sent-train')!} />
+            </div>
+          </Section>
+
           {/* S7 · Siguiente nivel */}
-          <Section id="siguiente" kicker="6.7 · SIGUIENTE" title="El último tramo">
+          <Section id="siguiente" kicker="5.8 · SIGUIENTE" title="El último tramo">
             <Link
               to="/modulos/generativos"
               className="group flex items-center justify-between gap-6 rounded-2xl border border-line bg-panel p-8 transition-all hover:-translate-y-1 hover:border-rose/60 hover:shadow-[0_0_30px_rgba(251,113,133,0.15)]"
             >
               <div>
                 <div className="mb-2 font-mono text-[0.78rem] uppercase tracking-[0.14em] text-rose">
-                  // SIGUIENTE · NIVEL 7
+                  // SIGUIENTE · NIVEL 6
                 </div>
                 <div className="font-display text-2xl font-bold text-ink md:text-3xl">
                   Modelos generativos: VAE, GAN y difusión
