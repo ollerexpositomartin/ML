@@ -1,5 +1,5 @@
 /**
- * Módulo Secuencias (N5a) — /modulos/secuencias
+ * Módulo Secuencias (N4) — /modulos/secuencias
  * Embeddings → RNN → vanishing gradient → puertas LSTM/GRU → seq2seq + atención.
  * Dos raíles: ChapterNav sticky + contenido (máx 860px).
  */
@@ -13,6 +13,7 @@ import FormulaBlock from '@/components/FormulaBlock'
 import ExerciseCard from '@/components/ExerciseCard'
 import QuizCard from '@/components/QuizCard'
 import { TeXParagraphs, TeX } from '@/lib/katex-content'
+import { getExercise } from '@/lib/exercises'
 import { SECUENCIAS_EXERCISES } from '@/data/exercises/secuencias'
 import DemoEmbeddings from '@/components/secuencias/DemoEmbeddings'
 import DemoRnnUnroll from '@/components/secuencias/DemoRnnUnroll'
@@ -21,16 +22,17 @@ import DemoPuertas from '@/components/secuencias/DemoPuertas'
 import DemoSeq2seq from '@/components/secuencias/DemoSeq2seq'
 
 const SECTIONS = [
-  { id: 'idea', label: '5.A La idea sin fórmulas' },
-  { id: 'repaso', label: '5.B Repaso exprés' },
-  { id: 'glosario', label: '5.C Glosario de símbolos' },
-  { id: 'embeddings', label: '5.1 Embeddings' },
-  { id: 'rnn', label: '5.2 La RNN' },
-  { id: 'vanishing', label: '5.3 Gradiente que se desvanece' },
-  { id: 'lstm', label: '5.4 Puertas LSTM y GRU' },
-  { id: 'atencion', label: '5.5 Seq2seq y atención' },
-  { id: 'ejercicios', label: '5.6 Ejercicios' },
-  { id: 'siguiente', label: '5.7 Siguiente nivel' },
+  { id: 'idea', label: '4.A La idea sin fórmulas' },
+  { id: 'repaso', label: '4.B Repaso exprés' },
+  { id: 'glosario', label: '4.C Glosario de símbolos' },
+  { id: 'embeddings', label: '4.1 Embeddings' },
+  { id: 'rnn', label: '4.2 La RNN' },
+  { id: 'vanishing', label: '4.3 Gradiente que se desvanece' },
+  { id: 'lstm', label: '4.4 Puertas LSTM y GRU' },
+  { id: 'atencion', label: '4.5 Seq2seq y atención' },
+  { id: 'ejercicios', label: '4.6 Ejercicios' },
+  { id: 'proyecto', label: '4.7 Proyecto: forecasting' },
+  { id: 'siguiente', label: '4.8 Siguiente nivel' },
 ]
 
 function Section({ id, kicker, title, children }: { id: string; kicker: string; title: string; children: ReactNode }) {
@@ -99,10 +101,10 @@ export default function Secuencias() {
     <div>
       <ModuleHero
         level="N4"
-        kicker="// NIVEL 5 · SECUENCIAS Y LENGUAJE"
+        kicker="// NIVEL 4 · SECUENCIAS Y LENGUAJE"
         title="Secuencias: modelos con memoria"
         abstract="El lenguaje, el audio y las series temporales tienen orden. Las RNN lo procesan paso a paso cargando un estado — hasta que el gradiente se desvanece. Las puertas de LSTM lo arreglan, y la atención lo cambiará todo."
-        meta={{ duration: '≈ 4 h', demos: 5, exercises: 6, xp: 520 }}
+        meta={{ duration: '≈ 4 h', demos: 5, exercises: 9, xp: 760 }}
         art="/art-secuencias.png"
         color="#8B5CF6"
       />
@@ -112,7 +114,7 @@ export default function Secuencias() {
 
         <div className="min-w-0 max-w-[860px] flex-1">
           {/* S0a · La idea sin fórmulas */}
-          <Section id="idea" kicker="5.A · ANTES DE EMPEZAR" title="La idea sin fórmulas">
+          <Section id="idea" kicker="4.A · ANTES DE EMPEZAR" title="La idea sin fórmulas">
             <Prose
               content={[
                 'El texto no se puede meter entero en una red: hay que leerlo **palabra a palabra, como lo harías tú**, llevando una «nota mental» de lo que va pasando. Una RNN es exactamente eso: un bucle for sobre la secuencia, donde en cada vuelta la nota mental (el **estado**) se actualiza combinando lo que recuerdas con la palabra que acabas de leer. «El gato que perseguía al ratón negro era…» — para adivinar qué sigue, tu nota mental tiene que retener «gato» desde el principio.',
@@ -125,7 +127,7 @@ export default function Secuencias() {
           </Section>
 
           {/* S0b · Repaso exprés */}
-          <Section id="repaso" kicker="5.B · PRERREQUISITOS EN 1 MINUTO" title="Repaso exprés">
+          <Section id="repaso" kicker="4.B · PRERREQUISITOS EN 1 MINUTO" title="Repaso exprés">
             <Prose content="Cinco ideas básicas y un módulo que conviene tener fresco. Pulsa el enlace si algo necesita repaso." />
             <Repaso items={[
               { q: '¿Qué es un vector?', d: 'Una lista de números: un array. Cada palabra se convertirá en uno (su embedding).', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
@@ -137,7 +139,7 @@ export default function Secuencias() {
           </Section>
 
           {/* S0c · Glosario */}
-          <Section id="glosario" kicker="5.C · DICCIONARIO DEL MÓDULO" title="Glosario de símbolos">
+          <Section id="glosario" kicker="4.C · DICCIONARIO DEL MÓDULO" title="Glosario de símbolos">
             <Prose content="Los símbolos que aparecerán en esta página, traducidos en una línea." />
             <Glosario items={[
               [String.raw`h_t`, 'la nota mental (estado) tras leer t palabras: el resumen de todo lo anterior'],
@@ -156,7 +158,7 @@ export default function Secuencias() {
           </Section>
 
           {/* S1 · Embeddings */}
-          <Section id="embeddings" kicker="5.1 · EMBEDDINGS" title="Palabras como geometría">
+          <Section id="embeddings" kicker="4.1 · EMBEDDINGS" title="Palabras como geometría">
             <Prose
               content={[
                 'Una red no entiende letras: entiende números. La primera idea, el vector **one-hot**, pone un 1 en la posición de la palabra y ceros en las otras $V-1$. Dos problemas fatales: la dimensión explota con el vocabulario ($V$ puede ser 50.000) y, peor aún, **no hay noción de similitud**: `perro` y `gato` son tan distintos entre sí como `perro` y `semáforo` — todos los productos punto son cero.',
@@ -185,7 +187,7 @@ export default function Secuencias() {
           </Section>
 
           {/* S2 · RNN */}
-          <Section id="rnn" kicker="5.2 · LA RNN" title="Procesar el orden, paso a paso">
+          <Section id="rnn" kicker="4.2 · LA RNN" title="Procesar el orden, paso a paso">
             <Prose
               content={[
                 'Una **red neuronal recurrente** mantiene un **estado oculto** $h$ que actúa como memoria: lee la entrada $x_t$ de cada paso, la combina con lo que recuerda ($h_{t-1}$) y actualiza su recuerdo. La misma celda — **los mismos pesos** — se aplica en cada posición: eso es el *weight sharing* en el tiempo, y es lo que le permite manejar secuencias de cualquier longitud.',
@@ -214,7 +216,7 @@ export default function Secuencias() {
           </Section>
 
           {/* S3 · Vanishing */}
-          <Section id="vanishing" kicker="5.3 · VANISHING GRADIENT" title="El gradiente que se desvanece">
+          <Section id="vanishing" kicker="4.3 · VANISHING GRADIENT" title="El gradiente que se desvanece">
             <Prose
               content={[
                 'Aquí está el problema que casi mata a las RNN. En BPTT, el gradiente que llega del paso $T$ al paso $k$ atraviesa $T-k$ celdas, y en cada una se multiplica por el Jacobiano de la recurrencia:',
@@ -242,7 +244,7 @@ export default function Secuencias() {
           </Section>
 
           {/* S4 · LSTM */}
-          <Section id="lstm" kicker="5.4 · LSTM Y GRU" title="Puertas: memoria con llave">
+          <Section id="lstm" kicker="4.4 · LSTM Y GRU" title="Puertas: memoria con llave">
             <Prose
               content={[
                 'La **LSTM** (*Long Short-Term Memory*, 1997) añade una segunda autopista de información: el **estado de celda** $C_t$, una cinta transportadora que atraviesa toda la secuencia casi sin transformaciones — solo sumas y productos elemento a elemento, así que el gradiente fluye sin desvanecerse. Tres **puertas** (sigmoides entre 0 y 1) deciden qué se borra, qué se escribe y qué se lee:',
@@ -302,7 +304,7 @@ export default function Secuencias() {
           </Section>
 
           {/* S5 · Seq2seq + atención */}
-          <Section id="atencion" kicker="5.5 · SEQ2SEQ Y ATENCIÓN" title="El cuello de botella y la primera atención">
+          <Section id="atencion" kicker="4.5 · SEQ2SEQ Y ATENCIÓN" title="El cuello de botella y la primera atención">
             <Prose
               content={[
                 'Para traducir, la arquitectura **encoder-decoder** (seq2seq, 2014) lee toda la frase fuente con una RNN y comprime *todo su significado* en un único vector $h$; otra RNN genera la traducción a partir de él. Funciona… hasta que la frase supera las ~15 palabras: un solo vector no puede retenerlo todo.',
@@ -333,7 +335,7 @@ export default function Secuencias() {
           </Section>
 
           {/* S6 · Ejercicios */}
-          <Section id="ejercicios" kicker="5.6 · EJERCICIOS" title="Demuestra lo aprendido">
+          <Section id="ejercicios" kicker="4.6 · EJERCICIOS" title="Demuestra lo aprendido">
             <div className="space-y-6">
               <ExerciseCard exercise={eCoseno} />
               <ExerciseCard exercise={eSoftmax} />
@@ -371,7 +373,7 @@ export default function Secuencias() {
                 xp={40}
                 question="¿Cuál es la causa matemática directa del vanishing gradient en una RNN?"
                 options={[
-                  { text: 'La función tanh, que se satura', correct: false, explanation: "Contribuye ($\\varphi' \\le 1$), pero no es la causa estructural: incluso con otras activaciones el producto de matrices encadena el problema." },
+                  { text: 'La función tanh, que se satura', correct: false, explanation: 'Contribuye ($\\varphi\' \\le 1$), pero no es la causa estructural: incluso con otras activaciones el producto de matrices encadena el problema.' },
                   { text: 'El learning rate demasiado alto', correct: false, explanation: 'Eso causa inestabilidad, no el decaimiento exponencial sistemático del gradiente hacia el pasado.' },
                   { text: 'El producto de $T-k$ Jacobianos con norma < 1 al retropropagar', correct: true, explanation: '¡Eso es! $\\partial h_T / \\partial h_k$ es un producto de muchas matrices; si cada una encoge, el total decae exponencialmente con la distancia temporal.' },
                   { text: 'Que la secuencia sea demasiado corta', correct: false, explanation: 'Al revés: cuanto más larga la secuencia, más factores en el producto y peor el problema.' },
@@ -402,15 +404,33 @@ export default function Secuencias() {
             </div>
           </Section>
 
+          {/* S6b · Proyecto práctico: forecasting de ventas */}
+          <Section id="proyecto" kicker="4.7 · PROYECTO PRÁCTICO" title="Predice las ventas de mañana">
+            <Prose
+              content={[
+                'Basta de juguetes: aquí va un problema tal cual aparece en la industria. Una cadena de tiendas quiere predecir **las ventas de mañana** para decidir stock y personal — es *forecasting* de demanda, probablemente la aplicación de series temporales más extendida del mundo (Amazon, Zara y tu supermercado de barrio viven de esto). Trabajarás con una serie sintética pero realista: dos años de ventas diarias con tendencia creciente, estacionalidad semanal, campaña de Navidad y ruido.',
+                '',
+                'Antes de tocar ningún modelo hay dos reglas de oro que distinguen al profesional: el **split temporal** (en series nunca se baraja — predecir el pasado habiendo visto el futuro es trampa) y la **normalización sin leakage** (la escala se calcula solo con train; usar la media global es colar información del futuro por la puerta de atrás). Después entrenarás una RNN mínima con BPTT escrito a mano y medirás algo que muchos olvidan: **cómo se degrada el error a medida que predices más días hacia adelante**.',
+                '',
+                'Y la métrica que manda en producción: tu modelo tiene que **batir al baseline**. Si una RNN no supera a «predecir lo de ayer» o a «lo de la semana pasada», no se despliega — por muy sofisticada que sea.',
+              ].join('\n')}
+            />
+            <div className="space-y-6">
+              <ExerciseCard exercise={getExercise('secuencias-sales-windows')!} />
+              <ExerciseCard exercise={getExercise('secuencias-sales-rnn')!} />
+              <ExerciseCard exercise={getExercise('secuencias-sales-horizon')!} />
+            </div>
+          </Section>
+
           {/* S7 · Siguiente nivel */}
-          <Section id="siguiente" kicker="5.7 · SIGUIENTE" title="A por la cumbre">
+          <Section id="siguiente" kicker="4.8 · SIGUIENTE" title="A por la cumbre">
             <Link
               to="/modulos/transformers"
               className="group flex items-center justify-between gap-6 rounded-2xl border border-line bg-panel p-8 transition-all hover:-translate-y-1 hover:border-amber/60 hover:shadow-[0_0_30px_rgba(251,191,36,0.15)]"
             >
               <div>
                 <div className="mb-2 font-mono text-[0.78rem] uppercase tracking-[0.14em] text-amber">
-                  // SIGUIENTE · NIVEL 6
+                  // SIGUIENTE · NIVEL 5
                 </div>
                 <div className="font-display text-2xl font-bold text-ink md:text-3xl">
                   Transformers: solo atención
