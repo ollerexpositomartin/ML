@@ -1,5 +1,5 @@
 /**
- * Página · Redes Neuronales — /modulos/redes-neuronales (N3)
+ * Página · Redes Neuronales — /modulos/redes-neuronales (N2)
  * Perceptrón → MLP → activaciones → backpropagation → playground TF.js → optimizadores.
  */
 
@@ -25,16 +25,17 @@ import CarreraDemo from '@/components/redes/CarreraDemo'
 registerExercises(REDES_NEURONALES_EXERCISES)
 
 const SECTIONS = [
-  { id: 'idea', label: '3.A La idea sin fórmulas' },
-  { id: 'repaso', label: '3.B Repaso exprés' },
-  { id: 'glosario', label: '3.C Glosario de símbolos' },
-  { id: 'neurona', label: '3.1 La neurona' },
-  { id: 'activaciones', label: '3.2 Activaciones' },
-  { id: 'forward', label: '3.3 Forward pass' },
-  { id: 'backprop', label: '3.4 Backpropagation' },
-  { id: 'playground', label: '3.5 El patio de juegos' },
-  { id: 'optimizadores', label: '3.6 Optimizadores' },
-  { id: 'ejercicios', label: '3.7 Ejercicios' },
+  { id: 'idea', label: '2.A La idea sin fórmulas' },
+  { id: 'repaso', label: '2.B Repaso exprés' },
+  { id: 'glosario', label: '2.C Glosario de símbolos' },
+  { id: 'neurona', label: '2.1 La neurona' },
+  { id: 'activaciones', label: '2.2 Activaciones' },
+  { id: 'forward', label: '2.3 Forward pass' },
+  { id: 'backprop', label: '2.4 Backpropagation' },
+  { id: 'playground', label: '2.5 El patio de juegos' },
+  { id: 'optimizadores', label: '2.6 Optimizadores' },
+  { id: 'ejercicios', label: '2.7 Ejercicios' },
+  { id: 'proyecto', label: '2.8 Proyecto: mini-MNIST' },
 ]
 
 function SectionHead({ kicker, title }: { kicker: string; title: string }) {
@@ -101,11 +102,11 @@ export default function RedesNeuronales() {
   return (
     <>
       <ModuleHero
-        level="N3"
-        kicker="// NIVEL 3 · DEEP LEARNING I"
+        level="N2"
+        kicker="// NIVEL 2 · DEEP LEARNING I"
         title="Redes neuronales: de una neurona al aprendizaje profundo"
         abstract="Apila neuronas y aparece la magia: cualquier función puede aproximarse. Pero entrenarla exige el algoritmo más importante del siglo: backpropagation. Aquí lo derivas, lo ves fluir y lo implementas."
-        meta={{ duration: '≈ 5 h', demos: 6, exercises: 6, xp: 560 }}
+        meta={{ duration: '≈ 5 h', demos: 6, exercises: 9, xp: 820 }}
         art="/art-redes.png"
         color="#8B5CF6"
       />
@@ -116,7 +117,7 @@ export default function RedesNeuronales() {
         <div className="min-w-0 max-w-[860px] flex-1 space-y-28">
           {/* S0a · La idea sin fórmulas */}
           <section id="idea">
-            <SectionHead kicker="// 3.A · antes de empezar" title="La idea sin fórmulas" />
+            <SectionHead kicker="// 2.A · antes de empezar" title="La idea sin fórmulas" />
             <Prose content={String.raw`Una red neuronal es, en el fondo, **una función gigante construida encadenando muchas funciones pequeñas** — como cuando en tu código haces «f(g(h(x)))». Cada "neurona" es una operación de lo más simple: multiplica cada entrada por un número que indica cuánto le importa (su **peso**), suma todo, le añade un pequeño ajuste y decide cuánta señal deja pasar. Apilar neuronas en capas es componer esas funciones una tras otra.
 
 ¿Y "aprender"? Los pesos son **tornillos ajustables**. Entrenar es girar esos tornillos una y otra vez, poquito a poco, hasta que la salida de la red se acerca a la respuesta correcta en todos los ejemplos que le enseñas. No hay magia: es prueba y error guiada.
@@ -126,7 +127,7 @@ La pieza genial es **backpropagation**: cuando la red se equivoca, ¿cómo sabes
 
           {/* S0b · Repaso exprés */}
           <section id="repaso">
-            <SectionHead kicker="// 3.B · prerrequisitos en 1 minuto" title="Repaso exprés" />
+            <SectionHead kicker="// 2.B · prerrequisitos en 1 minuto" title="Repaso exprés" />
             <Prose content={String.raw`No necesitas más matemáticas que estas cinco ideas. Si alguna te suena a chino, pulsa el enlace: el módulo Fundamentos la explica desde cero.`} />
             <Repaso items={[
               { q: '¿Qué es un vector?', d: 'Una lista ordenada de números: literalmente un array. Los datos de entrada de la red son eso.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
@@ -140,7 +141,7 @@ La pieza genial es **backpropagation**: cuando la red se equivoca, ¿cómo sabes
 
           {/* S0c · Glosario */}
           <section id="glosario">
-            <SectionHead kicker="// 3.C · diccionario del módulo" title="Glosario de símbolos" />
+            <SectionHead kicker="// 2.C · diccionario del módulo" title="Glosario de símbolos" />
             <Prose content={String.raw`Cada letra griega o símbolo raro que verás en esta página, traducido en una línea. Vuelve aquí cuando te pierdas.`} />
             <Glosario items={[
               [String.raw`\sigma`, 'sigmoide: aplasta cualquier número al rango 0–1 (útil como probabilidad o interruptor suave)'],
@@ -160,7 +161,7 @@ La pieza genial es **backpropagation**: cuando la red se equivoca, ¿cómo sabes
 
           {/* S1 · La neurona */}
           <section id="neurona">
-            <SectionHead kicker="// 3.1 · teoría + demo" title="La neurona" />
+            <SectionHead kicker="// 2.1 · teoría + demo" title="La neurona" />
             <Prose content={String.raw`La inspiración biológica es solo eso, una inspiración: una neurona artificial no imita al cerebro, es una **máquina matemática** minimalista. Toma unas entradas, las combina linealmente con unos pesos, añade un sesgo y pasa el resultado por una función no lineal. Nada más — y sin embargo, es suficiente.
 
 La fórmula completa cabe en una línea: $z = \sum_i w_i x_i + b$ y $a = \varphi(z)$. Una neurona es un **modelo lineal seguido de una no-linealidad**. Lo extraordinario llega al apilarlas: el teorema de aproximación universal garantiza que con una sola capa oculta suficientemente ancha puedes aproximar cualquier función continua. La pregunta del millón no es si puede, sino cómo encontrar los pesos.`} />
@@ -186,7 +187,7 @@ La fórmula completa cabe en una línea: $z = \sum_i w_i x_i + b$ y $a = \varphi
 
           {/* S2 · Activaciones */}
           <section id="activaciones">
-            <SectionHead kicker="// 3.2 · la chispa no lineal" title="Funciones de activación" />
+            <SectionHead kicker="// 2.2 · la chispa no lineal" title="Funciones de activación" />
             <Prose content={String.raw`Sin no-linealidad, una red de 100 capas es exactamente equivalente a una de una: la composición de funciones lineales es lineal. La activación es lo que rompe esa trivialidad y permite que cada capa construya representaciones más abstractas.
 
 La **sigmoide** y **tanh** dominaron los 90, pero saturan: con $|z|$ grande su gradiente se desvanece y el aprendizaje se congela. **ReLU** ($\max(0, z)$) lo arregló con una derivada que vale 1 en todo el semieje positivo — a costa del riesgo de *ReLU moribunda* (si una neurona queda siempre en zona cero, nunca recibe gradiente; Leaky ReLU la resucita con una pendiente pequeña). **GELU**, $z \cdot \Phi(z)$, es hoy la estándar en Transformers: una ReLU suavizada con puerta probabilística. **Swish** ($z \cdot \sigma(z)$), descubierta por búsqueda automática, compite con ella.`} />
@@ -210,7 +211,7 @@ La **sigmoide** y **tanh** dominaron los 90, pero saturan: con $|z|$ grande su g
 
           {/* S3 · Forward */}
           <section id="forward">
-            <SectionHead kicker="// 3.3 · la red completa" title="Forward pass" />
+            <SectionHead kicker="// 2.3 · la red completa" title="Forward pass" />
             <Prose content={String.raw`Apilar capas es componer transformaciones. En notación matricial, cada capa es un producto de matrices más una activación elemento a elemento. La **disciplina de formas** es tu mejor amiga: si $a^{(l-1)} \in \mathbb{R}^{n_{l-1}}$, entonces $W^{(l)} \in \mathbb{R}^{n_l \times n_{l-1}}$ y $b^{(l)} \in \mathbb{R}^{n_l}$. Cualquier bug de dimensiones se detecta en 10 segundos contando formas.
 
 La profundidad no es solo más potencia bruta: es **composicionalidad**. Las primeras capas aprenden features simples (bordes, frecuencias), las intermedias las combinan (formas, fonemas) y las profundas, conceptos. Contar parámetros también es fácil: cada capa aporta $(n_{l-1} + 1) \cdot n_l$ pesos — el +1 es el sesgo por neurona.`} />
@@ -262,10 +263,15 @@ La profundidad no es solo más potencia bruta: es **composicionalidad**. Las pri
 
           {/* S4 · Backprop */}
           <section id="backprop">
-            <SectionHead kicker="// 3.4 · el algoritmo del siglo" title="Backpropagation" />
+            <SectionHead kicker="// 2.4 · el algoritmo del siglo" title="Backpropagation" />
             <Prose content={String.raw`Backpropagation no es más que la **regla de la cadena aplicada con inteligencia**: en vez de derivar la pérdida respecto a cada peso por separado (coste exponencial), calcula el error de cada capa una sola vez y lo reutiliza hacia atrás. El error de salida $\delta^{(L)}$ se propaga multiplicando por las matrices transpuestas y por la derivada local de cada activación.
 
 El resultado: el coste de calcular TODOS los gradientes es comparable a UN solo forward. Esa eficiencia es la razón por la que el deep learning es posible.`} />
+            <Llano>
+              Dos reglas que se repiten capa a capa, de atrás hacia delante: la segunda reparte la culpa
+              del error a cada capa según lo que aportó, y la primera convierte esa culpa en el ajuste
+              concreto de cada peso. Con eso, cada tornillo sabe exactamente cuánto girar.
+            </Llano>
             <FormulaBlock
               formula={String.raw`\frac{\partial L}{\partial W^{(l)}} = \delta^{(l)} \left(a^{(l-1)}\right)^{\top}, \qquad \delta^{(l)} = \left(W^{(l+1)\top} \delta^{(l+1)}\right) \odot \varphi'\!\left(z^{(l)}\right)`}
               caption="Las dos ecuaciones de backprop"
@@ -307,7 +313,7 @@ La demo de abajo ejecuta exactamente estos seis pasos, con los números reales a
 
           {/* S5 · Playground */}
           <section id="playground">
-            <SectionHead kicker="// 3.5 · demo estrella" title="El patio de juegos" />
+            <SectionHead kicker="// 2.5 · demo estrella" title="El patio de juegos" />
             <Prose content={String.raw`Todo lo anterior cobra vida aquí: una red real entrenándose **en tu navegador con TensorFlow.js**. Elige un dataset, diseña la arquitectura, ajusta η y la regularización L2, y observa cómo la frontera de decisión se esculpe época a época.
 
 Experimentos que merecen la pena: XOR con 1 capa oculta de 2 neuronas (justo en el límite), la espiral con ReLU y pocas neuronas (fronteras angulosas que no generalizan), demasiado L2 (la frontera se aplana y no clasifica nada), y η grande (la pérdida oscila).`} />
@@ -316,7 +322,7 @@ Experimentos que merecen la pena: XOR con 1 capa oculta de 2 neuronas (justo en 
 
           {/* S6 · Optimizadores */}
           <section id="optimizadores">
-            <SectionHead kicker="// 3.6 · bajar la montaña con estilo" title="Optimizadores y trucos" />
+            <SectionHead kicker="// 2.6 · bajar la montaña con estilo" title="Optimizadores y trucos" />
             <Prose content={String.raw`SGD puro es frágil: en valles alargados oscila de pared a pared y avanza lentísimo. **Momentum** acumula una velocidad que suaviza las oscilaciones y acelera en las direcciones consistentes — como una bola con inercia. **Adam** va más allá: mantiene una media del gradiente ($m$) y de su cuadrado ($v$), corrige el sesgo de inicialización y divide cada coordenada por su escala típica. Es el optimizador por defecto del deep learning moderno.`} />
             <Llano>
               En vez de moverte solo según la pendiente de hoy, guarda inercia: como una bola rodando cuesta
@@ -366,7 +372,7 @@ Experimentos que merecen la pena: XOR con 1 capa oculta de 2 neuronas (justo en 
 
           {/* S7 · Ejercicios */}
           <section id="ejercicios">
-            <SectionHead kicker="// 3.7 · demuestra lo aprendido" title="Ejercicios autocorregidos" />
+            <SectionHead kicker="// 2.7 · demuestra lo aprendido" title="Ejercicios autocorregidos" />
             <Prose content={String.raw`Python real (numpy) ejecutándose en tu navegador. Escribe la solución, pulsa **Corregir** y un harness de tests ocultos la evalúa al instante. El ejercicio E4 es el jefe del nivel: tu backprop se valida con gradient check numérico, parámetro a parámetro.`} />
             <div className="space-y-6">
               {REDES_NEURONALES_EXERCISES.map((ex) => (
@@ -436,6 +442,21 @@ Experimentos que merecen la pena: XOR con 1 capa oculta de 2 neuronas (justo en 
             </div>
           </section>
 
+          {/* S7b · Proyecto práctico */}
+          <section id="proyecto">
+            <SectionHead kicker="// 2.8 · proyecto práctico" title="Proyecto: reconoce dígitos escritos a mano (mini-MNIST)" />
+            <Prose content={String.raw`MNIST —70.000 dígitos manuscritos de 28×28 píxeles— es el "hola mundo" del deep learning: la tarea con la que Yann LeCun demostró en los 90 que una red entrenada con gradiente podía leer códigos postales de verdad. Aquí no podemos descargar 55 MB, así que generamos un mini-MNIST procedural: los dígitos 0, 1 y 7 dibujados como fuentes de píxeles sobre un lienzo 8×8, con traslaciones, ruido y píxeles muertos. Es sintético, pero el pipeline es el real: batch, forward, softmax, entropía cruzada y backpropagation.
+
+La arquitectura es la mínima que merece llamarse "profunda": 64 entradas, 16 neuronas ocultas con ReLU y 3 salidas con softmax. Todo lo que has derivado en este módulo —la regla de la cadena capa a capa, la máscara de la ReLU, el gradiente softmax + entropía cruzada que se simplifica en $P - Y$— se junta en un único entrenamiento que tarda segundos y supera el 95 % de accuracy en test. Cuando lo tengas, habrás escrito a mano el mismo bucle que frameworks como PyTorch automatizan.
+
+Y terminarás donde termina cualquier trabajo serio de visión: mirando los errores. La matriz de confusión te dirá qué dígitos se parecen demasiado (pista: el anillo del 0 contiene casi todos los píxeles del 7) — el mismo análisis que harías sobre el MNIST real antes de proponer una arquitectura mejor.`} />
+            <div className="space-y-6">
+              <ExerciseCard exercise={getExercise('redes-digits-forward')!} />
+              <ExerciseCard exercise={getExercise('redes-digits-train')!} />
+              <ExerciseCard exercise={getExercise('redes-digits-errors')!} />
+            </div>
+          </section>
+
           {/* S8 · Siguiente nivel */}
           <section>
             <Link
@@ -444,7 +465,7 @@ Experimentos que merecen la pena: XOR con 1 capa oculta de 2 neuronas (justo en 
             >
               <div>
                 <div className="mb-2 font-mono text-[0.78rem] uppercase tracking-[0.14em] text-violet">
-                  // SIGUIENTE · NIVEL 4
+                  // SIGUIENTE · NIVEL 3
                 </div>
                 <div className="font-display text-2xl font-bold text-ink">CNN: ver con convoluciones</div>
                 <p className="mt-1 text-sm text-muted">
