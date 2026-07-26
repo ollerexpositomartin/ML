@@ -1,6 +1,7 @@
 /**
  * Ejercicios del módulo Redes Neuronales (N3).
  * Prefijo de ids: `redes-`. Cada solution_code está verificado contra su test_code.
+ * Incluye el proyecto práctico «mini-MNIST de dígitos» (P3.x, ids redes-digits-*).
  */
 
 import type { Exercise } from '@/lib/exercises'
@@ -527,6 +528,405 @@ check("Converge cerca del mínimo en 200 pasos", lambda: bool(np.all(np.abs(thet
       'Primero actualiza $m$ y $v$ con las medias exponenciales; **después** calcula $\\hat{m}$ y $\\hat{v}$.',
       'La corrección de sesgo usa $\\beta^{t}$ con el $t$ que llega como argumento (1 en el primer paso).',
       'El paso final es `param - lr * m_hat / (np.sqrt(v_hat) + eps)`. No actualices `param` con `m` sin corregir.',
+    ],
+  },
+  /* ---------------------------------------------------------------- */
+  /* Proyecto práctico: mini-MNIST de dígitos escritos a mano          */
+  /* ---------------------------------------------------------------- */
+  {
+    id: 'redes-digits-forward',
+    title: 'P3.1 · Dígitos: el forward de la red',
+    difficulty: 'INTERMEDIO',
+    xp: 80,
+    statement: [
+      'El clásico de visión por computador: reconocer dígitos escritos a mano. En lugar de MNIST (55 MB que no caben aquí), te damos `make_digits(n_per_class, seed)`: un mini-MNIST procedural con 3 clases —los dígitos **0, 1 y 7**— renderizados como fuentes de píxeles 5×3 sobre un lienzo 8×8, con traslación aleatoria, ruido y píxeles muertos o encendidos al azar. Cada imagen queda aplanada a un vector de 64 valores en $[0, 1]$; las etiquetas son 0, 1 y 2 (para los dígitos 0, 1 y 7).',
+      'Tu modelo será un MLP $64 \\rightarrow 16 \\;(\\mathrm{ReLU})\\; \\rightarrow 3 \\;(\\mathrm{softmax})$. Implementa `forward_mlp(X, W1, b1, W2, b2)` para un **batch** completo `X` de forma $(B, 64)$, devolviendo la tupla `(A1, P)`: las activaciones ocultas $(B, 16)$ y las probabilidades $(B, 3)$.',
+      '$$Z_1 = XW_1 + b_1, \\quad A_1 = \\max(Z_1, 0), \\quad Z_2 = A_1 W_2 + b_2, \\quad P = \\mathrm{softmax}(Z_2)$$',
+      'El softmax debe ser **estable**: resta el máximo de cada fila antes de la exponencial, $\\mathrm{softmax}(z)_i = e^{z_i - m} / \\sum_j e^{z_j - m}$ con $m = \\max(z)$. El resultado es idéntico, pero `np.exp` nunca desborda.',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+PATTERNS = np.array([
+    [[1,1,1],[1,0,1],[1,0,1],[1,0,1],[1,1,1]],  # dígito 0
+    [[0,1,0],[1,1,0],[0,1,0],[0,1,0],[1,1,1]],  # dígito 1
+    [[1,1,1],[0,0,1],[0,0,1],[0,1,0],[0,1,0]],  # dígito 7
+], dtype=float)
+CLASES = [0, 1, 7]
+
+def make_digits(n_per_class=150, seed=3):
+    """Mini-MNIST procedural: 3 clases (0, 1, 7), imágenes 8x8 aplanadas a 64."""
+    rng = np.random.default_rng(seed)
+    n = 3 * n_per_class
+    X = np.zeros((n, 64))
+    y = np.repeat(np.arange(3), n_per_class)
+    for i in range(n):
+        r = int(rng.integers(0, 4))
+        c = int(rng.integers(1, 5))
+        img = np.zeros((8, 8))
+        img[r:r + 5, c:c + 3] = PATTERNS[y[i]]
+        img = img * 0.9 + rng.normal(0, 0.12, (8, 8))
+        dead = rng.random((8, 8)) < 0.03
+        hot = rng.random((8, 8)) < 0.03
+        img[dead] = 0.0
+        img[hot] = rng.uniform(0.5, 1.0, int(hot.sum()))
+        X[i] = np.clip(img, 0.0, 1.0).ravel()
+    return X, y
+
+def forward_mlp(X, W1, b1, W2, b2):
+    """Forward de un MLP 64 -> 16 (ReLU) -> 3 (softmax) para un batch X (B, 64).
+    Devuelve (A1, P): activaciones ocultas (B, 16) y probabilidades (B, 3)."""
+    # TODO: Z1, ReLU, Z2, softmax estable
+    return None, None
+
+X, y = make_digits(150, seed=3)
+rng = np.random.default_rng(0)
+W1 = rng.normal(0, np.sqrt(2 / 64), (64, 16)); b1 = np.zeros(16)
+W2 = rng.normal(0, np.sqrt(2 / 16), (16, 3)); b2 = np.zeros(3)
+A1, P = forward_mlp(X[:8], W1, b1, W2, b2)
+print(P.round(3))
+print("las filas suman:", P.sum(axis=1).round(6))
+`,
+    solution_code: `import numpy as np
+
+PATTERNS = np.array([
+    [[1,1,1],[1,0,1],[1,0,1],[1,0,1],[1,1,1]],
+    [[0,1,0],[1,1,0],[0,1,0],[0,1,0],[1,1,1]],
+    [[1,1,1],[0,0,1],[0,0,1],[0,1,0],[0,1,0]],
+], dtype=float)
+CLASES = [0, 1, 7]
+
+def make_digits(n_per_class=150, seed=3):
+    rng = np.random.default_rng(seed)
+    n = 3 * n_per_class
+    X = np.zeros((n, 64))
+    y = np.repeat(np.arange(3), n_per_class)
+    for i in range(n):
+        r = int(rng.integers(0, 4))
+        c = int(rng.integers(1, 5))
+        img = np.zeros((8, 8))
+        img[r:r + 5, c:c + 3] = PATTERNS[y[i]]
+        img = img * 0.9 + rng.normal(0, 0.12, (8, 8))
+        dead = rng.random((8, 8)) < 0.03
+        hot = rng.random((8, 8)) < 0.03
+        img[dead] = 0.0
+        img[hot] = rng.uniform(0.5, 1.0, int(hot.sum()))
+        X[i] = np.clip(img, 0.0, 1.0).ravel()
+    return X, y
+
+def forward_mlp(X, W1, b1, W2, b2):
+    Z1 = X @ W1 + b1
+    A1 = np.maximum(Z1, 0.0)
+    Z2 = A1 @ W2 + b2
+    Z2 = Z2 - Z2.max(axis=1, keepdims=True)
+    E = np.exp(Z2)
+    P = E / E.sum(axis=1, keepdims=True)
+    return A1, P
+`,
+    test_code: `
+_X, _y = make_digits(150, seed=3)
+check("Dataset: 450 imágenes de 64 píxeles, 3 clases equilibradas",
+      lambda: _X.shape == (450, 64) and np.allclose(np.bincount(_y), [150, 150, 150]),
+      msg="150 ejemplos por dígito (0, 1, 7), cada imagen 8x8 aplanada")
+check("Píxeles en [0, 1]",
+      lambda: _X.min() >= 0.0 and _X.max() <= 1.0,
+      msg="recorta con np.clip tras añadir el ruido")
+
+_rng = np.random.default_rng(0)
+_W1 = _rng.normal(0, np.sqrt(2 / 64), (64, 16))
+_b1 = _rng.normal(0, 0.1, 16)
+_W2 = _rng.normal(0, np.sqrt(2 / 16), (16, 3))
+_b2 = _rng.normal(0, 0.1, 3)
+_Xb = _X[:32]
+
+_A1, _P = forward_mlp(_Xb, _W1, _b1, _W2, _b2)
+check("Formas: A1 (32, 16) y P (32, 3)",
+      lambda: np.asarray(_A1).shape == (32, 16) and np.asarray(_P).shape == (32, 3),
+      msg="una fila por imagen del batch; 16 neuronas ocultas, 3 salidas")
+check("ReLU: la capa oculta no tiene valores negativos",
+      lambda: bool(np.all(_A1 >= 0)),
+      msg="A1 = max(Z1, 0) elemento a elemento")
+check("Softmax: cada fila de P suma 1 y está en (0, 1)",
+      lambda: np.allclose(_P.sum(axis=1), 1.0) and bool(np.all(_P > 0)) and bool(np.all(_P < 1)),
+      msg="P = exp(Z2) / sum(exp(Z2)) por fila")
+
+_Z1 = _Xb @ _W1 + _b1
+_A1r = np.maximum(_Z1, 0.0)
+_Z2 = _A1r @ _W2 + _b2
+_E = np.exp(_Z2 - _Z2.max(axis=1, keepdims=True))
+_Pr = _E / _E.sum(axis=1, keepdims=True)
+check("Coincide con el forward de referencia",
+      lambda: np.allclose(_A1, _A1r) and np.allclose(_P, _Pr, atol=1e-10),
+      msg="Z1 = X@W1+b1, A1 = relu(Z1), Z2 = A1@W2+b2, P = softmax(Z2)")
+check("Softmax estable con logits grandes (sin nan/inf)",
+      lambda: bool(np.all(np.isfinite(forward_mlp(_Xb, _W1, _b1, _W2 * 100.0, _b2 * 100.0)[1]))),
+      msg="resta el máximo de cada fila antes de exp(): exp(Z - max) nunca desborda")
+check("El argmax de P coincide con el argmax de Z2",
+      lambda: np.array_equal(np.asarray(_P).argmax(axis=1), _Z2.argmax(axis=1)),
+      msg="softmax es monótona: no cambia la clase ganadora")
+`,
+    hints: [
+      'Son cuatro líneas de numpy: `Z1 = X @ W1 + b1`, `A1 = np.maximum(Z1, 0.0)`, `Z2 = A1 @ W2 + b2`, y el softmax por filas.',
+      'Softmax estable: `Z2 = Z2 - Z2.max(axis=1, keepdims=True)` antes de `np.exp`; luego divide cada fila entre su suma.',
+      'El `keepdims=True` es la clave para que el broadcasting reste/divida fila a fila.',
+    ],
+  },
+  {
+    id: 'redes-digits-train',
+    title: 'P3.2 · Dígitos: backprop y entrenamiento completo',
+    difficulty: 'AVANZADO',
+    xp: 140,
+    statement: [
+      'El jefe del proyecto: entrenar la red del ejercicio anterior con **backpropagation** escrita a mano. Implementa `train_mlp(X, y, hidden=16, lr=0.5, epochs=800, seed=0)` que entrene un MLP $64 \\rightarrow h \\;(\\mathrm{ReLU})\\; \\rightarrow 3 \\;(\\mathrm{softmax})$ minimizando la entropía cruzada con descenso del gradiente batch, y `predict_mlp(X, W1, b1, W2, b2)`.',
+      'Inicialización de He con la semilla dada: $W_1 \\sim \\mathcal{N}(0, 2/64)$, $W_2 \\sim \\mathcal{N}(0, 2/h)$, sesgos a cero. Con etiquetas one-hot $Y$, el backward completo es:',
+      '$$dZ_2 = \\frac{P - Y}{N}, \\qquad dW_2 = A_1^{\\top} dZ_2, \\qquad dZ_1 = (dZ_2 W_2^{\\top}) \\odot \\mathbb{1}[Z_1 > 0], \\qquad dW_1 = X^{\\top} dZ_1$$',
+      'Devuelve la tupla `(W1, b1, W2, b2, losses)`, con `losses` registrando la entropía cruzada media **antes de cada actualización**. El test genera 450 dígitos, reserva 90 para test y exige **accuracy ≥ 0.95 en test** — el dataset es fácil a propósito: una implementación correcta supera 0.97. Entrena en segundos; si tarda más, estás haciendo bucles sobre muestras en vez de operar con el batch entero.',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+PATTERNS = np.array([
+    [[1,1,1],[1,0,1],[1,0,1],[1,0,1],[1,1,1]],  # dígito 0
+    [[0,1,0],[1,1,0],[0,1,0],[0,1,0],[1,1,1]],  # dígito 1
+    [[1,1,1],[0,0,1],[0,0,1],[0,1,0],[0,1,0]],  # dígito 7
+], dtype=float)
+
+def make_digits(n_per_class=150, seed=3):
+    """Mini-MNIST procedural: 3 clases (0, 1, 7), imágenes 8x8 aplanadas a 64."""
+    rng = np.random.default_rng(seed)
+    n = 3 * n_per_class
+    X = np.zeros((n, 64))
+    y = np.repeat(np.arange(3), n_per_class)
+    for i in range(n):
+        r = int(rng.integers(0, 4))
+        c = int(rng.integers(1, 5))
+        img = np.zeros((8, 8))
+        img[r:r + 5, c:c + 3] = PATTERNS[y[i]]
+        img = img * 0.9 + rng.normal(0, 0.12, (8, 8))
+        dead = rng.random((8, 8)) < 0.03
+        hot = rng.random((8, 8)) < 0.03
+        img[dead] = 0.0
+        img[hot] = rng.uniform(0.5, 1.0, int(hot.sum()))
+        X[i] = np.clip(img, 0.0, 1.0).ravel()
+    return X, y
+
+def train_mlp(X, y, hidden=16, lr=0.5, epochs=800, seed=0):
+    """MLP 64 -> hidden (ReLU) -> 3 (softmax), entropía cruzada y GD batch.
+    Devuelve (W1, b1, W2, b2, losses) con len(losses) == epochs."""
+    # TODO: init He con default_rng(seed), forward, loss, backward, update
+    return None, None, None, None, []
+
+def predict_mlp(X, W1, b1, W2, b2):
+    """Clase predicha (argmax de los logits) para cada imagen."""
+    # TODO
+    return None
+
+X, y = make_digits(150, seed=3)
+rng = np.random.default_rng(1)
+idx = rng.permutation(len(y))
+te, tr = idx[:90], idx[90:]
+W1, b1, W2, b2, losses = train_mlp(X[tr], y[tr], hidden=16, lr=0.5, epochs=800, seed=0)
+acc = np.mean(predict_mlp(X[te], W1, b1, W2, b2) == y[te])
+print("loss final:", losses[-1] if losses else None, "| accuracy test:", acc)
+`,
+    solution_code: `import numpy as np
+
+PATTERNS = np.array([
+    [[1,1,1],[1,0,1],[1,0,1],[1,0,1],[1,1,1]],
+    [[0,1,0],[1,1,0],[0,1,0],[0,1,0],[1,1,1]],
+    [[1,1,1],[0,0,1],[0,0,1],[0,1,0],[0,1,0]],
+], dtype=float)
+
+def make_digits(n_per_class=150, seed=3):
+    rng = np.random.default_rng(seed)
+    n = 3 * n_per_class
+    X = np.zeros((n, 64))
+    y = np.repeat(np.arange(3), n_per_class)
+    for i in range(n):
+        r = int(rng.integers(0, 4))
+        c = int(rng.integers(1, 5))
+        img = np.zeros((8, 8))
+        img[r:r + 5, c:c + 3] = PATTERNS[y[i]]
+        img = img * 0.9 + rng.normal(0, 0.12, (8, 8))
+        dead = rng.random((8, 8)) < 0.03
+        hot = rng.random((8, 8)) < 0.03
+        img[dead] = 0.0
+        img[hot] = rng.uniform(0.5, 1.0, int(hot.sum()))
+        X[i] = np.clip(img, 0.0, 1.0).ravel()
+    return X, y
+
+def train_mlp(X, y, hidden=16, lr=0.5, epochs=800, seed=0):
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y, dtype=int)
+    n, d = X.shape
+    rng = np.random.default_rng(seed)
+    W1 = rng.normal(0, np.sqrt(2.0 / d), (d, hidden))
+    b1 = np.zeros(hidden)
+    W2 = rng.normal(0, np.sqrt(2.0 / hidden), (hidden, 3))
+    b2 = np.zeros(3)
+    Y = np.eye(3)[y]
+    losses = []
+    for _ in range(epochs):
+        Z1 = X @ W1 + b1
+        A1 = np.maximum(Z1, 0.0)
+        Z2 = A1 @ W2 + b2
+        E = np.exp(Z2 - Z2.max(axis=1, keepdims=True))
+        P = E / E.sum(axis=1, keepdims=True)
+        losses.append(float(-np.mean(np.sum(Y * np.log(P + 1e-12), axis=1))))
+        dZ2 = (P - Y) / n
+        dW2 = A1.T @ dZ2
+        db2 = dZ2.sum(axis=0)
+        dA1 = dZ2 @ W2.T
+        dZ1 = dA1 * (Z1 > 0)
+        dW1 = X.T @ dZ1
+        db1 = dZ1.sum(axis=0)
+        W1 -= lr * dW1
+        b1 -= lr * db1
+        W2 -= lr * dW2
+        b2 -= lr * db2
+    return W1, b1, W2, b2, losses
+
+def predict_mlp(X, W1, b1, W2, b2):
+    A1 = np.maximum(X @ W1 + b1, 0.0)
+    return (A1 @ W2 + b2).argmax(axis=1)
+`,
+    test_code: `
+_X, _y = make_digits(150, seed=3)
+_rng = np.random.default_rng(1)
+_idx = _rng.permutation(len(_y))
+_te, _tr = _idx[:90], _idx[90:]
+_Xtr, _Xte, _ytr, _yte = _X[_tr], _X[_te], _y[_tr], _y[_te]
+
+_W1, _b1, _W2, _b2, _losses = train_mlp(_Xtr, _ytr, hidden=16, lr=0.5, epochs=800, seed=0)
+check("Formas de los parámetros: (64,16), (16,), (16,3), (3,)",
+      lambda: _W1.shape == (64, 16) and _b1.shape == (16,) and _W2.shape == (16, 3) and _b2.shape == (3,),
+      msg="W1 conecta 64 píxeles con 16 neuronas; W2 conecta 16 neuronas con 3 clases")
+check("losses registra un valor por época y termina muy por debajo",
+      lambda: len(_losses) == 800 and _losses[-1] < 0.05 * _losses[0],
+      msg="guarda la entropía cruzada antes de cada actualización")
+check("La pérdida final es baja (< 0.15)",
+      lambda: _losses[-1] < 0.15,
+      msg="con lr=0.5 y 800 épocas la red separa casi perfectamente el train")
+
+_pred_tr = predict_mlp(_Xtr, _W1, _b1, _W2, _b2)
+_pred_te = predict_mlp(_Xte, _W1, _b1, _W2, _b2)
+_acc_tr = float(np.mean(_pred_tr == _ytr))
+_acc_te = float(np.mean(_pred_te == _yte))
+check("Accuracy en train >= 0.98",
+      lambda: _acc_tr >= 0.98,
+      msg="revisa dZ2 = (P - Y)/n y la máscara de la ReLU (Z1 > 0) en el backward")
+check("Accuracy en test >= 0.95 (objetivo del proyecto)",
+      lambda: _acc_te >= 0.95,
+      msg="el dataset es fácil: un backprop correcto supera 0.97 en test")
+check("Generaliza: test no cae más de 5 puntos respecto a train",
+      lambda: _acc_te >= _acc_tr - 0.05,
+      msg="si memorizas (train 1.0, test 0.8) algo falla en el pipeline")
+
+_W1b, _b1b, _W2b, _b2b, _ = train_mlp(_Xtr[:64], _ytr[:64], hidden=16, lr=0.5, epochs=5, seed=0)
+check("Misma semilla -> mismos pesos (inicialización reproducible)",
+      lambda: np.allclose(_W1b, train_mlp(_Xtr[:64], _ytr[:64], 16, 0.5, 5, 0)[0]),
+      msg="usa np.random.default_rng(seed) para inicializar")
+`,
+    hints: [
+      'Forward y loss: `Z1 = X@W1+b1`, `A1 = relu(Z1)`, softmax estable, y `loss = -mean(sum(Y * log(P)))` por filas.',
+      'El gradiente de entrada es `dZ2 = (P - Y) / n` — la división entre `n` aquí ya promedia todos los gradientes siguientes.',
+      'La máscara de la ReLU en el backward es `(Z1 > 0)`, no `(A1 > 0)`: en el borde no afecta, pero lo correcto es mirar la pre-activación.',
+    ],
+  },
+  {
+    id: 'redes-digits-errors',
+    title: 'P3.3 · Dígitos: autopsia de los errores',
+    difficulty: 'BASICO',
+    xp: 40,
+    statement: [
+      'Entrenar es solo la mitad del trabajo; la otra mitad es **mirar los errores**. ¿Qué dígitos se confunde tu red? El 0 y el 7 comparten buena parte de sus píxeles (el anillo del 0 incluye la barra superior y el trazo derecho del 7), así que bajo ruido y traslaciones son los candidatos naturales a confundirse.',
+      'Implementa `matriz_confusion(y_true, y_pred, n_clases=3)`: una matriz $(3 \\times 3)$ de enteros donde `M[i, j]` cuenta cuántas veces la clase real $i$ se predijo como $j$ (la diagonal son los aciertos). Y `par_mas_confundido(M)`, que devuelve el par $(i, j)$ con $i < j$ que maximiza $M_{ij} + M_{ji}$ — las confusiones cruzadas entre ambas clases, en cualquier dirección. En empates, gana el par de índice menor.',
+      'Estas dos funciones son las mismas que usarías sobre el MNIST real o sobre cualquier clasificador en producción: la matriz de confusión es el primer diagnóstico cuando un modelo «tiene un 95 % de accuracy» pero falla siempre en el mismo sitio.',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+def matriz_confusion(y_true, y_pred, n_clases=3):
+    """M[i, j] = cuántas veces la clase real i se predijo como j."""
+    # TODO: recorre los pares (real, predicho) e incrementa
+    return np.zeros((n_clases, n_clases), dtype=int)
+
+def par_mas_confundido(M):
+    """Par (i, j), i < j, con más confusiones cruzadas M[i,j] + M[j,i].
+    Empate: gana el de índice menor."""
+    # TODO
+    return (0, 1)
+
+y_true = np.array([0, 0, 0, 1, 1, 2, 2, 2])
+y_pred = np.array([0, 2, 0, 1, 2, 2, 0, 2])
+M = matriz_confusion(y_true, y_pred)
+print(M)
+print("par más confundido:", par_mas_confundido(M))  # esperado: (0, 2)
+`,
+    solution_code: `import numpy as np
+
+def matriz_confusion(y_true, y_pred, n_clases=3):
+    y_true = np.asarray(y_true, dtype=int)
+    y_pred = np.asarray(y_pred, dtype=int)
+    M = np.zeros((n_clases, n_clases), dtype=int)
+    for real, pred in zip(y_true, y_pred):
+        M[real, pred] += 1
+    return M
+
+def par_mas_confundido(M):
+    M = np.asarray(M)
+    n = M.shape[0]
+    mejor_par, mejor_cuenta = (0, 1), -1
+    for i in range(n):
+        for j in range(i + 1, n):
+            cuenta = int(M[i, j]) + int(M[j, i])
+            if cuenta > mejor_cuenta:
+                mejor_cuenta = cuenta
+                mejor_par = (i, j)
+    return mejor_par
+`,
+    test_code: `
+_yt = np.array([0, 0, 0, 1, 1, 2, 2, 2])
+_yp = np.array([0, 2, 0, 1, 2, 2, 0, 2])
+check("matriz_confusion cuenta bien (filas = real, columnas = predicción)",
+      lambda: np.array_equal(matriz_confusion(_yt, _yp), np.array([[2, 0, 1], [0, 1, 1], [1, 0, 2]])),
+      msg="M[0, 2] = 1 (un 0 predicho como clase 2); M[2, 0] = 1 (un 2 predicho como 0)")
+check("La diagonal son los aciertos",
+      lambda: int(np.trace(matriz_confusion(_yt, _yp))) == int(np.sum(_yt == _yp)),
+      msg="trace(M) = aciertos totales")
+check("par_mas_confundido ignora la diagonal",
+      lambda: par_mas_confundido(np.array([[5, 0, 0], [0, 5, 0], [0, 0, 5]])) == (0, 1),
+      msg="sin errores todos los pares empatan a 0: devuelve el primero por orden")
+check("Detecta el par correcto aunque la confusión sea en un solo sentido",
+      lambda: par_mas_confundido(matriz_confusion(_yt, _yp)) == (0, 2),
+      msg="las clases 1 y 2 se confunden 1 vez (1->2); las 0 y 2, 2 veces (0->2 y 2->0): gana (0, 2)")
+check("Desempate determinista: gana el par de índice menor",
+      lambda: par_mas_confundido(np.array([[3, 2, 0], [2, 3, 0], [0, 0, 3]])) == (0, 1)
+              and par_mas_confundido(np.eye(4, dtype=int)) == (0, 1),
+      msg="recorre i < j en orden y actualiza solo si la cuenta es estrictamente mayor")
+
+# Sobre predicciones realistas de una red ya entrenada
+_rng = np.random.default_rng(5)
+_yreal = np.repeat(np.arange(3), 40)
+_ypred = _yreal.copy()
+_err = _rng.random(120) < 0.08
+_cambio = _rng.integers(1, 3, 120)
+_ypred[_err] = (_ypred[_err] + _cambio[_err]) % 3
+_M = matriz_confusion(_yreal, _ypred)
+_Mref = np.zeros((3, 3), dtype=int)
+for _r, _p in zip(_yreal, _ypred):
+    _Mref[_r, _p] += 1
+check("Tu matriz coincide con la referencia en 120 predicciones",
+      lambda: np.array_equal(_M, _Mref),
+      msg="recorre los pares (real, predicho) e incrementa M[real, pred]")
+check("Accuracy desde la matriz = trace / total",
+      lambda: np.allclose(np.trace(_M) / _M.sum(), float(np.mean(_yreal == _ypred))),
+      msg="la matriz resume todo lo necesario para las métricas por clase")
+check("El par más confundido cuadra con la referencia",
+      lambda: par_mas_confundido(_M) == par_mas_confundido(_Mref),
+      msg="mismo criterio: maximiza M[i,j] + M[j,i] con i < j")
+`,
+    hints: [
+      'La matriz: bucle `for real, pred in zip(y_true, y_pred): M[real, pred] += 1`. Convierte las entradas a enteros con `np.zeros((n, n), dtype=int)`.',
+      'Para el par, dos bucles anidados `i < j` comparando `M[i, j] + M[j, i]`; actualiza el mejor solo si la cuenta es **estrictamente** mayor (así el empate lo gana el primero).',
+      'No cuentes la diagonal: `M[i, i]` son aciertos, no confusiones.',
     ],
   },
 ]
