@@ -1,5 +1,5 @@
 /**
- * MLClasico — /modulos/ml-clasico · Nivel N1–N2.
+ * MLClasico — /modulos/ml-clasico · Nivel N1.
  * Regresión logística, métricas, overfitting/regularización, KNN/SVM/árboles/
  * ensembles, K-means y PCA. 7 demos interactivas, 6 ejercicios + quiz.
  */
@@ -18,7 +18,7 @@ import DemoZoo from '@/components/mlclasico/DemoZoo'
 import DemoKMeans from '@/components/mlclasico/DemoKMeans'
 import DemoPCA from '@/components/mlclasico/DemoPCA'
 import { TeX } from '@/lib/katex-content'
-import { registerExercises } from '@/lib/exercises'
+import { getExercise, registerExercises } from '@/lib/exercises'
 import { ML_CLASICO_EXERCISES } from '@/data/exercises/ml-clasico'
 
 registerExercises(ML_CLASICO_EXERCISES)
@@ -31,7 +31,8 @@ const SECTIONS: ChapterSection[] = [
   { id: 'zoo', label: '1.4 El zoo clásico' },
   { id: 'nosupervisado', label: '1.5 K-means y PCA' },
   { id: 'ejercicios', label: '1.6 Ejercicios' },
-  { id: 'siguiente', label: '1.7 Siguiente nivel' },
+  { id: 'proyecto', label: '1.7 Proyecto: spam' },
+  { id: 'siguiente', label: '1.8 Siguiente nivel' },
 ]
 
 function Section({
@@ -77,10 +78,10 @@ export default function MLClasico() {
     <>
       <ModuleHero
         level="N1"
-        kicker="// NIVEL 1–2 · MACHINE LEARNING CLÁSICO"
+        kicker="// NIVEL 1 · MACHINE LEARNING CLÁSICO"
         title="ML clásico: clasificar, medir y no sobreajustar"
         abstract="La regresión logística convierte la recta en una probabilidad. Después: cómo medir de verdad un modelo, por qué memorizar no es aprender, y el zoo de modelos que aún dominan los datos tabulares."
-        meta={{ duration: '≈ 4 h', demos: 7, exercises: 7, xp: 400 }}
+        meta={{ duration: '≈ 4 h', demos: 7, exercises: 10, xp: 600 }}
         art="/art-clasico.png"
         color="#22D3EE"
       />
@@ -252,6 +253,10 @@ export default function MLClasico() {
               El antídoto más directo es penalizar la complejidad: añadir a la pérdida un castigo por
               pesos grandes.
             </P>
+            <EnClaro>
+              A la pérdida de siempre le sumas un impuesto: cuanto más grande es cada peso, más pagas.
+              El modelo solo deja crecer los pesos que de verdad reducen el error.
+            </EnClaro>
             <FormulaBlock
               formula="L' = L + \lambda \sum_{i} w_i^2 \qquad \text{(L2 · ridge)}"
               caption="Regularización L2: los pesos grandes cuestan"
@@ -260,6 +265,10 @@ export default function MLClasico() {
                 { symbol: '\\sum w_i^2', color: '#8B5CF6', explanation: 'L2 encoge todos los pesos suavemente («weight decay»): el modelo prefiere explicaciones repartidas' },
               ]}
             />
+            <EnClaro>
+              La misma idea, pero el impuesto es el tamaño sin elevar al cuadrado: esa variante empuja
+              los pesos menos útiles hasta cero exacto, apagando características enteras.
+            </EnClaro>
             <FormulaBlock
               formula="L' = L + \lambda \sum_{i} |w_i| \qquad \text{(L1 · lasso)}"
               caption="Regularización L1: genera pesos exactamente cero"
@@ -280,6 +289,10 @@ export default function MLClasico() {
               busca los <TeX content="$k$" /> ejemplos más parecidos y vota. Toda la «inteligencia» está
               en la métrica de distancia — con <TeX content="$k=1$" /> memoriza el dataset entero.
             </P>
+            <EnClaro>
+              Pitágoras con muchas dimensiones: resta cada característica entre los dos puntos, eleva
+              cada diferencia al cuadrado, suma todo y saca la raíz. Cuanto menor, más parecidos.
+            </EnClaro>
             <FormulaBlock
               formula="d(x, x') = \|x - x'\|_2 = \sqrt{\sum_{j} (x_j - x'_j)^2}"
               caption="Distancia euclídea: la noción de «parecido» de KNN"
@@ -289,6 +302,11 @@ export default function MLClasico() {
               el <b className="text-ink">margen más ancho</b> posible entre clases: solo unos pocos puntos
               (los vectores soporte) deciden dónde va la frontera.
             </P>
+            <EnClaro>
+              De todas las fronteras que separan las clases, quédate con la que deja la «carretera» más
+              ancha en medio — con la condición de que ningún ejemplo quede dentro de esa carretera ni
+              en el lado equivocado.
+            </EnClaro>
             <FormulaBlock
               formula="\min_{w,b}\; \frac{1}{2}\|w\|^2 \quad \text{s.t.} \quad y_i\,(w \cdot x_i + b) \geq 1"
               caption="SVM de margen duro: maximizar el margen = minimizar ‖w‖"
@@ -302,6 +320,11 @@ export default function MLClasico() {
               («¿x₁ ≤ 2.3?») eligiendo en cada nodo el corte con mayor <b className="text-ink">ganancia de
               información</b>: el que más reduce la entropía (desorden) de las etiquetas.
             </P>
+            <EnClaro>
+              La entropía mide el desorden de las etiquetas en un grupo (cero si todas son iguales). La
+              ganancia de información es cuánto desorden desaparece al hacer un corte: el árbol elige en
+              cada nodo la pregunta que más ordena.
+            </EnClaro>
             <FormulaBlock
               formula="H = -\sum_{c} p_c \log_2 p_c, \qquad IG = H(\mathrm{padre}) - \sum_{k} \frac{n_k}{n}\, H(\mathrm{hijo}_k)"
               caption="Entropía y ganancia de información"
@@ -323,6 +346,11 @@ export default function MLClasico() {
               supervisado</b> busca estructura. <b className="text-cyan">K-means</b> agrupa los puntos en{' '}
               <TeX content="$k$" /> clusters minimizando la distancia al centroide de cada grupo:
             </P>
+            <EnClaro>
+              Cada punto se asigna al grupo cuyo centro le queda más cerca; el objetivo es colocar esos
+              centros de modo que la suma de distancias (al cuadrado) de cada punto a su centro sea la
+              menor posible.
+            </EnClaro>
             <FormulaBlock
               formula="\min_{\mu_1, \dots, \mu_k} \; \sum_{i=1}^{N} \left\| x_i - \mu_{c(i)} \right\|^2"
               caption="Objetivo de K-means (inercia intra-cluster)"
@@ -340,6 +368,11 @@ export default function MLClasico() {
               autovectores de la matriz de covarianza — para proyectar a menos dimensiones perdiendo la
               menor información posible.
             </P>
+            <EnClaro>
+              Resume cómo varían juntas las columnas de tus datos y busca las direcciones en las que la
+              nube se estira más. Cada dirección viene con una nota: qué porcentaje de la información
+              total captura.
+            </EnClaro>
             <FormulaBlock
               formula="\Sigma = \frac{1}{N} X^{\top} X, \qquad \Sigma v_j = \lambda_j v_j, \qquad \text{varianza explicada}_j = \frac{\lambda_j}{\sum_l \lambda_l}"
               caption="PCA: autovalores de la covarianza = varianza capturada por dirección"
@@ -427,6 +460,36 @@ export default function MLClasico() {
             </div>
           </Section>
 
+          {/* S6b · proyecto práctico */}
+          <Section id="proyecto" kicker="// 1.7 · PROYECTO PRÁCTICO" title="Proyecto: detector de spam">
+            <P>
+              La clasificación binaria es probablemente el problema de ML más desplegado del mundo, y el
+              filtro de spam su ejemplo fundacional. Aquí lo construyes entero: emails como bolsas de
+              palabras sobre un vocabulario español fijo (60 palabras, de <i>gratis</i> y{' '}
+              <i>premio</i> a <i>reunión</i> y <i>factura</i>), generados con solape real —algunos
+              correos legítimos contienen «oferta», como en la vida— y una regresión logística entrenada
+              desde cero, sin sklearn.
+            </P>
+            <P>
+              El giro profesional está en la segunda parte: en spam, el error caro no es simétrico.
+              Dejar pasar un spam molesta; mandar la factura de un cliente a la carpeta equivocada
+              cuesta dinero. Eso se traduce en un requisito de negocio —precision del 98 %— y en la
+              técnica estándar para cumplirlo: afinar el <b className="text-ink">umbral de
+              decisión</b> sobre un conjunto de validación, maximizando el recall sujeto a la
+              restricción. Es exactamente lo que se hace en detección de fraude o diagnóstico médico,
+              cambiando solo el coste de cada error.
+            </P>
+            <P>
+              Cierras el proyecto con el entregable que entiende cualquier stakeholder: la matriz de
+              confusión y las métricas calculadas a mano, conteo a conteo. Nada de cajas negras.
+            </P>
+            <div className="space-y-6">
+              <ExerciseCard exercise={getExercise('ml-clasico-spam-train')!} />
+              <ExerciseCard exercise={getExercise('ml-clasico-spam-threshold')!} />
+              <ExerciseCard exercise={getExercise('ml-clasico-spam-metrics')!} />
+            </div>
+          </Section>
+
           {/* S7 · siguiente */}
           <section id="siguiente" className="scroll-mt-24 border-t border-line/60 py-14">
             <Link
@@ -434,7 +497,7 @@ export default function MLClasico() {
               className="group block rounded-2xl border border-line bg-panel p-7 transition-all hover:-translate-y-1 hover:border-violet/50 hover:shadow-glow-violet"
             >
               <span className="font-mono text-[0.78rem] uppercase tracking-[0.14em] text-violet">
-                // SIGUIENTE · NIVEL 3
+                // SIGUIENTE · NIVEL 2
               </span>
               <div className="mt-2 flex items-center justify-between gap-4">
                 <h3 className="font-display text-2xl font-bold text-ink">
