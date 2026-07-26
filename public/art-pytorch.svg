@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs>
+    <radialGradient id="glowCenter" cx="62%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.16"/>
+      <stop offset="55%" stop-color="#22D3EE" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#04060D" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="edgeGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22D3EE" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0.55"/>
+    </linearGradient>
+    <linearGradient id="edgeBack" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="#FB7185" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#FB7185" stop-opacity="0.08"/>
+    </linearGradient>
+    <filter id="soft" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+    <filter id="soft2" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#1C2440" stroke-width="1" opacity="0.55"/>
+    </pattern>
+    <pattern id="subgrid" width="16" height="16" patternUnits="userSpaceOnUse">
+      <path d="M16 0H0V16" fill="none" stroke="#1C2440" stroke-width="0.5" opacity="0.22"/>
+    </pattern>
+  </defs>
+
+  <!-- fondo -->
+  <rect width="1200" height="900" fill="#04060D"/>
+  <rect width="1200" height="900" fill="url(#subgrid)"/>
+  <rect width="1200" height="900" fill="url(#grid)"/>
+  <rect width="1200" height="900" fill="url(#glowCenter)"/>
+
+  <!-- halo central -->
+  <circle cx="760" cy="380" r="300" fill="#8B5CF6" opacity="0.05" filter="url(#soft2)"/>
+  <circle cx="420" cy="560" r="220" fill="#22D3EE" opacity="0.045" filter="url(#soft2)"/>
+
+  <!-- ============ GRAFO COMPUTACIONAL ============ -->
+  <!-- aristas de retorno (backward, rose, finas, curvas) -->
+  <g fill="none" stroke="url(#edgeBack)" stroke-width="1.4" stroke-dasharray="3 7" opacity="0.8">
+    <path d="M905 415 C 760 500, 620 520, 505 470"/>
+    <path d="M905 380 C 770 300, 640 285, 510 320"/>
+    <path d="M470 480 C 380 560, 300 585, 235 560"/>
+    <path d="M470 330 C 370 270, 300 260, 240 285"/>
+  </g>
+
+  <!-- aristas forward (gradiente cyan→violet) -->
+  <g fill="none" stroke="url(#edgeGrad)" stroke-width="2.2">
+    <path d="M230 300 C 320 300, 380 310, 462 338"/>
+    <path d="M230 575 C 330 570, 390 520, 460 468"/>
+    <path d="M230 300 C 330 360, 380 430, 458 455"/>
+    <path d="M505 350 C 620 360, 740 370, 898 388"/>
+    <path d="M508 455 C 630 445, 750 425, 898 402"/>
+  </g>
+
+  <!-- pulsos lime (forward) -->
+  <g>
+    <circle cx="345" cy="305" r="7" fill="#A3E635" filter="url(#soft)"/>
+    <circle cx="345" cy="305" r="3.4" fill="#EDF1FA"/>
+    <circle cx="345" cy="540" r="7" fill="#A3E635" filter="url(#soft)"/>
+    <circle cx="345" cy="540" r="3.4" fill="#EDF1FA"/>
+    <circle cx="700" cy="362" r="8" fill="#A3E635" filter="url(#soft)"/>
+    <circle cx="700" cy="362" r="4" fill="#EDF1FA"/>
+    <circle cx="640" cy="446" r="8" fill="#A3E635" filter="url(#soft)"/>
+    <circle cx="640" cy="446" r="4" fill="#EDF1FA"/>
+  </g>
+
+  <!-- pulsos rose (backward) -->
+  <g>
+    <circle cx="700" cy="492" r="6" fill="#FB7185" filter="url(#soft)"/>
+    <circle cx="700" cy="492" r="3" fill="#EDF1FA"/>
+    <circle cx="350" cy="578" r="6" fill="#FB7185" filter="url(#soft)"/>
+    <circle cx="350" cy="578" r="3" fill="#EDF1FA"/>
+  </g>
+
+  <!-- nodos hoja (entradas, cyan) -->
+  <g>
+    <circle cx="230" cy="300" r="34" fill="#0D1322" stroke="#22D3EE" stroke-width="2.5"/>
+    <circle cx="230" cy="300" r="44" fill="none" stroke="#22D3EE" stroke-width="1" opacity="0.25"/>
+    <text x="230" y="306" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="20" font-weight="700" fill="#22D3EE">x</text>
+    <circle cx="230" cy="575" r="34" fill="#0D1322" stroke="#22D3EE" stroke-width="2.5"/>
+    <circle cx="230" cy="575" r="44" fill="none" stroke="#22D3EE" stroke-width="1" opacity="0.25"/>
+    <text x="230" y="581" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="20" font-weight="700" fill="#22D3EE">w</text>
+  </g>
+
+  <!-- nodos operación (violet) -->
+  <g>
+    <circle cx="482" cy="345" r="38" fill="#0D1322" stroke="#8B5CF6" stroke-width="2.5"/>
+    <circle cx="482" cy="345" r="49" fill="none" stroke="#8B5CF6" stroke-width="1" opacity="0.3"/>
+    <text x="482" y="353" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="22" font-weight="700" fill="#8B5CF6">*</text>
+    <circle cx="482" cy="462" r="38" fill="#0D1322" stroke="#8B5CF6" stroke-width="2.5"/>
+    <circle cx="482" cy="462" r="49" fill="none" stroke="#8B5CF6" stroke-width="1" opacity="0.3"/>
+    <text x="482" y="470" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="22" font-weight="700" fill="#8B5CF6">+</text>
+  </g>
+
+  <!-- nodo salida L (rose, grande, glow) -->
+  <g>
+    <circle cx="922" cy="398" r="66" fill="#FB7185" opacity="0.14" filter="url(#soft2)"/>
+    <circle cx="922" cy="398" r="46" fill="#0D1322" stroke="#FB7185" stroke-width="3"/>
+    <circle cx="922" cy="398" r="58" fill="none" stroke="#FB7185" stroke-width="1.2" opacity="0.35" stroke-dasharray="6 5"/>
+    <text x="922" y="408" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="26" font-weight="700" fill="#FB7185">L</text>
+  </g>
+
+  <!-- anotaciones mono -->
+  <g font-family="'JetBrains Mono',monospace" font-size="15" fill="#55618A">
+    <text x="150" y="245">requires_grad=True</text>
+    <text x="540" y="300">forward →</text>
+    <text x="560" y="540" fill="#FB7185" opacity="0.85">← backward</text>
+    <text x="838" y="500" fill="#FB7185">loss.backward()</text>
+    <text x="150" y="660" fill="#55618A">∂L/∂w acumulado en w.grad</text>
+  </g>
+
+  <!-- etiqueta kicker -->
+  <g font-family="'JetBrains Mono',monospace">
+    <rect x="64" y="64" width="330" height="40" rx="20" fill="#A3E635" opacity="0.08"/>
+    <rect x="64" y="64" width="330" height="40" rx="20" fill="none" stroke="#A3E635" stroke-opacity="0.35"/>
+    <text x="84" y="90" font-size="16" letter-spacing="3" fill="#A3E635">// N7 · TU PROPIO PYTORCH</text>
+  </g>
+
+  <!-- partículas ambientales -->
+  <g fill="#22D3EE">
+    <circle cx="120" cy="770" r="2.2" opacity="0.5"/>
+    <circle cx="1080" cy="180" r="2.6" opacity="0.45"/>
+    <circle cx="980" cy="720" r="2" opacity="0.4"/>
+    <circle cx="620" cy="120" r="2.4" opacity="0.5"/>
+    <circle cx="90" cy="420" r="1.8" opacity="0.4"/>
+  </g>
+  <g fill="#8B5CF6">
+    <circle cx="1130" cy="500" r="2.4" opacity="0.5"/>
+    <circle cx="380" cy="800" r="2.2" opacity="0.45"/>
+    <circle cx="760" cy="820" r="2" opacity="0.4"/>
+  </g>
+  <g fill="#A3E635">
+    <circle cx="530" cy="700" r="2" opacity="0.5"/>
+    <circle cx="1050" cy="330" r="1.8" opacity="0.45"/>
+  </g>
+</svg>
