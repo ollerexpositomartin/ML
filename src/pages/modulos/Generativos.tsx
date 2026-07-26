@@ -7,7 +7,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { motion } from 'framer-motion'
-import { ArrowRight, ShieldAlert, Scale, Copyright, Leaf, Lock } from 'lucide-react'
+import { ArrowRight, ShieldAlert, Scale, Copyright, Leaf } from 'lucide-react'
 import { InlineMath } from 'react-katex'
 import ChapterNav from '@/components/ChapterNav'
 import ModuleHero from '@/components/ModuleHero'
@@ -166,7 +166,7 @@ export default function Generativos() {
     <div>
       <ModuleHero
         level="N6"
-        kicker="// NIVEL 7 · CREAR EN LUGAR DE CLASIFICAR"
+        kicker="// NIVEL 6 · CREAR EN LUGAR DE CLASIFICAR"
         title="Modelos generativos: máquinas que imaginan"
         abstract="Hasta ahora, tus modelos discriminaban. Ahora generan: caras que no existen, imágenes a partir de ruido puro. VAEs, el duelo adversario de las GAN y la difusión que alimenta a DALL·E y Stable Diffusion."
         meta={{ duration: '≈ 4 h', demos: 5, exercises: 6, xp: 560 }}
@@ -298,7 +298,7 @@ export default function Generativos() {
           </Section>
 
           {/* ---------------- S2 · VAE ---------------- */}
-          <Section id="vae" kicker="// 02 · AUTOENCODERS PROBABILÍSTICOS" title="VAE: variaciones autoencodadas">
+          <Section id="vae" kicker="// 02 · AUTOENCODERS PROBABILÍSTICOS" title="VAE: el autoencoder variacional">
             <Prose>
               <p>
                 Un autoencoder clásico comprime <TeX content="$x$" /> a un código <TeX content="$z$" /> y lo
@@ -355,9 +355,10 @@ export default function Generativos() {
             </div>
             <Prose>
               <p>
-                Si el término KL pesa demasiado poco, el encoder “hace trampas”: separa los posteriores tanto que
-                el espacio latente deja de ser navegable (<em>posterior collapse</em> en sentido contrario: todo
-                apilado). En el explorador de abajo puedes recorrer una rejilla latente 2D y ver la forma
+                El equilibrio es delicado: si el término KL pesa demasiado poco, el encoder separa los
+                posteriores tanto que el latente deja de ser navegable; si pesa demasiado, llega el{' '}
+                <em>posterior collapse</em> — todas las gaussianas se apilan sobre el prior y el decoder
+                acaba ignorando z. En el explorador de abajo puedes recorrer una rejilla latente 2D y ver la forma
                 decodificada morfar en vivo — y romper el equilibrio con el toggle.
               </p>
             </Prose>
@@ -441,7 +442,7 @@ export default function Generativos() {
                 a paso desde <TeX content="$x_T \\sim \\mathcal{N}(0, I)$" /> hasta una imagen limpia. ¿Por qué
                 le ganó la partida a las GAN? <strong className="text-ink">Estabilidad</strong> (no hay duelo
                 minimax) y <strong className="text-ink">cobertura</strong> (no hay mode collapse: el forward
-                toca todos los modos de los datos). Scrubea t y luego ejecuta el denoise:
+                toca todos los modos de los datos). Desliza t y luego ejecuta el denoise:
               </p>
             </Prose>
             <div className="mt-8">
@@ -548,38 +549,38 @@ export default function Generativos() {
             </div>
           </Section>
 
-          {/* ---------------- S7 · Boss Final CTA ---------------- */}
-          <section id="boss" className="scroll-mt-24 py-16 md:py-20">
+          {/* ---------------- S7 · Siguiente nivel CTA ---------------- */}
+          <section id="siguiente" className="scroll-mt-24 py-16 md:py-20">
             <motion.div
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ duration: 0.9 }}
-              className="relative overflow-hidden rounded-2xl border border-amber/40 bg-panel p-8 md:p-12"
-              style={{ boxShadow: '0 0 60px rgba(251,191,36,0.12)' }}
+              className="relative overflow-hidden rounded-2xl border border-line bg-panel p-8 md:p-12"
+              style={{ boxShadow: '0 0 60px rgba(163,230,53,0.10)' }}
             >
               <div
                 className="pointer-events-none absolute inset-0 animate-pulse-soft"
-                style={{ background: 'radial-gradient(ellipse 60% 80% at 80% 20%, rgba(251,191,36,0.10), transparent 70%)' }}
+                style={{ background: 'radial-gradient(ellipse 60% 80% at 80% 20%, rgba(163,230,53,0.10), transparent 70%)' }}
                 aria-hidden
               />
               <div className="relative">
-                <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber/40 bg-amber/10 px-3 py-1 font-mono text-[0.78rem] uppercase tracking-[0.14em] text-amber">
-                  <Lock className="h-3 w-3" aria-hidden />
-                  // ÚLTIMO PASO
+                <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-lime/40 bg-lime/10 px-3 py-1 font-mono text-[0.78rem] uppercase tracking-[0.14em] text-lime">
+                  // SIGUIENTE · N7 PYTORCH
                 </span>
                 <h3 className="font-display text-[clamp(1.6rem,3vw,2.4rem)] font-bold tracking-[-0.03em] text-ink">
-                  Boss Final: el proyecto capstone
+                  PyTorch práctico: el framework de los profesionales
                 </h3>
                 <p className="mt-3 max-w-[560px] text-base leading-[1.75] text-muted">
-                  Un dataset real, un pipeline completo, un umbral de accuracy que superar. Todo lo que has
-                  aprendido, en un solo ejercicio.
+                  Ya entiendes la teoría profunda: autograd, backprop, GAN y difusión. Ahora aprendes la
+                  herramienta con la que se construye todo esto en el mundo real — construyendo tu propio
+                  mini-framework con autograd incluido.
                 </p>
                 <Link
-                  to="/laboratorio#boss"
-                  className="group mt-7 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber to-rose px-6 py-3 font-mono text-sm font-bold text-bg-0 transition-transform hover:scale-[1.03] active:scale-[0.97]"
+                  to="/modulos/pytorch"
+                  className="group mt-7 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-lime to-cyan px-6 py-3 font-mono text-sm font-bold text-bg-0 transition-transform hover:scale-[1.03] active:scale-[0.97]"
                 >
-                  A por el Boss
+                  Seguir al N7
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
                 </Link>
               </div>
