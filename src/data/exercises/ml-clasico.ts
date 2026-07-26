@@ -1,6 +1,7 @@
 /**
  * ml-clasico.ts — Ejercicios autocorregidos del módulo ML Clásico (N1–N2).
- * 6 ejercicios (BÁSICO → AVANZADO) + quiz conceptual en la página (QuizCard).
+ * 6 ejercicios (BÁSICO → AVANZADO) + 3 del proyecto práctico «detector de
+ * spam» (P2.x) + quiz conceptual en la página (QuizCard).
  * Todas las solution_code pasan su propio test_code al 100 % (verificado con
  * python3 + numpy 2.x replicando el harness check()).
  */
@@ -495,6 +496,423 @@ check("Clusters equilibrados en blobs limpios",
       'Parte A: es `fit_logistic` con `dw = (X.T @ err)/n + (lam/n)*w`. No toques `db`.',
       'Parte B: las distancias punto-centroide salen con broadcasting: `((X[:,None,:] − C[None,:,:])**2).sum(2)`, y la asignación es `np.argmin(d2, axis=1)`.',
       'Actualiza cada centroide a la media de sus puntos (`X[labels == c].mean(axis=0)`), pero solo si el cluster no está vacío.',
+    ],
+  },
+  /* ---------------------------------------------------------------- */
+  /* Proyecto práctico: detector de spam                               */
+  /* ---------------------------------------------------------------- */
+  {
+    id: 'ml-clasico-spam-train',
+    title: 'P2.1 · Spam: entrenar la regresión logística',
+    difficulty: 'INTERMEDIO',
+    xp: 80,
+    statement: [
+      'Proyecto real de un proveedor de correo: decidir si un email es spam a partir de las palabras que contiene. Te damos `make_emails(n, seed)`, que genera emails sintéticos como **bolsas de palabras** sobre un vocabulario fijo de 60 palabras (20 típicas de spam —*gratis, oferta, premio, urgente*— y 40 legítimas —*reunión, proyecto, informe, factura*—). `X` es la matriz de conteos $(n \\times 60)$ e `y` la etiqueta (1 = spam). El solape es real: un 9 % de las palabras de un email legítimo también son «spammy».',
+      'Implementa el clasificador completo desde cero:',
+      '- `sigmoid(z)`: la sigmoide $\\sigma(z) = 1/(1+e^{-z})$ **numéricamente estable** (ramifica según el signo de $z$ para no desbordar `np.exp`).\n- `fit_logistic(X, y, lr=2.0, epochs=3000)`: regresión logística por descenso del gradiente batch sobre la log-loss, partiendo de ceros. El gradiente es $\\nabla_w L = \\frac{1}{N}X^{\\top}(p - y)$ con $p = \\sigma(Xw + b)$.\n- `predict_proba(X, w, b)`: probabilidades de spam.',
+      'Trabaja con **frecuencias relativas** (divide cada fila de conteos entre el total de palabras del email) y reserva 240 emails para test. El test exige **accuracy ≥ 0.90** en test; una solución correcta ronda 0.92.',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+SPAM_WORDS = ["gratis", "oferta", "premio", "urgente", "click", "gana", "dinero",
+              "descuento", "promocion", "exclusivo", "regalo", "oportunidad",
+              "loteria", "casino", "credito", "herencia", "millones",
+              "transferencia", "ahora", "limitado"]
+LEGIT_WORDS = ["reunion", "proyecto", "informe", "cliente", "factura", "equipo",
+               "entrega", "revision", "contrato", "calendario", "adjunto",
+               "propuesta", "aprobacion", "presupuesto", "planificacion",
+               "objetivos", "sprint", "diseno", "backend", "frontend",
+               "despliegue", "servidor", "datos", "incidencia", "soporte",
+               "proveedor", "nomina", "vacaciones", "candidato", "entrevista",
+               "onboarding", "documentacion", "actualizacion", "mantenimiento",
+               "metricas", "trimestre", "auditoria", "inventario", "pedido",
+               "minuta"]
+VOCAB = SPAM_WORDS + LEGIT_WORDS
+N_SPAM = len(SPAM_WORDS)
+
+def make_emails(n=1200, seed=7):
+    """Emails sintéticos como bolsas de palabras. y=1 es spam."""
+    rng = np.random.default_rng(seed)
+    y = rng.integers(0, 2, n)
+    X = np.zeros((n, len(VOCAB)))
+    for i in range(n):
+        L = int(rng.poisson(14) + 4)            # longitud del email
+        p = 0.38 if y[i] == 1 else 0.09         # prob. de palabra spammy
+        k = int((rng.random(L) < p).sum())
+        palabras = np.concatenate([rng.integers(0, N_SPAM, k),
+                                   rng.integers(N_SPAM, len(VOCAB), L - k)])
+        np.add.at(X[i], palabras, 1)
+    return X, y
+
+def sigmoid(z):
+    """Sigmoide numéricamente estable (escalar o array)."""
+    # TODO: rama z >= 0 y rama z < 0
+    return 0.0
+
+def fit_logistic(X, y, lr=2.0, epochs=3000):
+    """Regresión logística binaria por GD batch sobre log-loss. Devuelve (w, b)."""
+    # TODO
+    return np.zeros(X.shape[1]), 0.0
+
+def predict_proba(X, w, b):
+    """Probabilidad de spam para cada email."""
+    # TODO
+    return None
+
+X, y = make_emails(1200, seed=7)
+F = X / X.sum(axis=1, keepdims=True)  # frecuencias relativas por email
+rng = np.random.default_rng(0)
+idx = rng.permutation(len(y))
+te, tr = idx[:240], idx[240:]
+w, b = fit_logistic(F[tr], y[tr], lr=2.0, epochs=3000)
+acc = np.mean((predict_proba(F[te], w, b) >= 0.5) == y[te])
+print("accuracy test:", acc)
+`,
+    solution_code: `import numpy as np
+
+SPAM_WORDS = ["gratis", "oferta", "premio", "urgente", "click", "gana", "dinero",
+              "descuento", "promocion", "exclusivo", "regalo", "oportunidad",
+              "loteria", "casino", "credito", "herencia", "millones",
+              "transferencia", "ahora", "limitado"]
+LEGIT_WORDS = ["reunion", "proyecto", "informe", "cliente", "factura", "equipo",
+               "entrega", "revision", "contrato", "calendario", "adjunto",
+               "propuesta", "aprobacion", "presupuesto", "planificacion",
+               "objetivos", "sprint", "diseno", "backend", "frontend",
+               "despliegue", "servidor", "datos", "incidencia", "soporte",
+               "proveedor", "nomina", "vacaciones", "candidato", "entrevista",
+               "onboarding", "documentacion", "actualizacion", "mantenimiento",
+               "metricas", "trimestre", "auditoria", "inventario", "pedido",
+               "minuta"]
+VOCAB = SPAM_WORDS + LEGIT_WORDS
+N_SPAM = len(SPAM_WORDS)
+
+def make_emails(n=1200, seed=7):
+    rng = np.random.default_rng(seed)
+    y = rng.integers(0, 2, n)
+    X = np.zeros((n, len(VOCAB)))
+    for i in range(n):
+        L = int(rng.poisson(14) + 4)
+        p = 0.38 if y[i] == 1 else 0.09
+        k = int((rng.random(L) < p).sum())
+        palabras = np.concatenate([rng.integers(0, N_SPAM, k),
+                                   rng.integers(N_SPAM, len(VOCAB), L - k)])
+        np.add.at(X[i], palabras, 1)
+    return X, y
+
+def sigmoid(z):
+    z = np.asarray(z, dtype=float)
+    out = np.empty_like(z)
+    pos = z >= 0
+    out[pos] = 1.0 / (1.0 + np.exp(-z[pos]))
+    ez = np.exp(z[~pos])
+    out[~pos] = ez / (1.0 + ez)
+    return out
+
+def fit_logistic(X, y, lr=2.0, epochs=3000):
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n, d = X.shape
+    w = np.zeros(d)
+    b = 0.0
+    for _ in range(epochs):
+        p = sigmoid(X @ w + b)
+        g = p - y
+        w -= lr * (X.T @ g) / n
+        b -= lr * float(np.mean(g))
+    return w, b
+
+def predict_proba(X, w, b):
+    return sigmoid(np.asarray(X, dtype=float) @ w + b)
+`,
+    test_code: `
+_X, _y = make_emails(1200, seed=7)
+check("Dataset: 1200 emails x 60 palabras, etiquetas 0/1",
+      lambda: _X.shape == (1200, 60) and set(np.unique(_y)) == {0, 1},
+      msg="X es la matriz de conteos (n_emails, vocabulario) e y las etiquetas")
+check("Solape real: hay emails legítimos con palabras spammy",
+      lambda: int(np.sum((_X[:, :20].sum(axis=1) > 0) & (_y == 0))) > 50,
+      msg="el 9 % de las palabras de un email legítimo son spammy: no hay reglas perfectas")
+
+check("sigmoid(0) = 0.5 y es estable en ±500",
+      lambda: np.allclose(float(sigmoid(0.0)), 0.5)
+              and bool(np.isfinite(float(sigmoid(500.0))))
+              and np.allclose(float(sigmoid(-500.0)), 0.0),
+      msg="ramifica según el signo de z para no desbordar np.exp")
+
+_F = _X / _X.sum(axis=1, keepdims=True)  # frecuencias relativas por email
+_rng = np.random.default_rng(0)
+_idx = _rng.permutation(_F.shape[0])
+_te, _tr = _idx[:240], _idx[240:]
+_Xtr, _Xte, _ytr, _yte = _F[_tr], _F[_te], _y[_tr], _y[_te]
+
+_w, _b = fit_logistic(_Xtr, _ytr, lr=2.0, epochs=3000)
+check("w tiene un peso por palabra del vocabulario",
+      lambda: np.asarray(_w).shape == (60,),
+      msg="60 features -> 60 pesos")
+
+_p_tr = predict_proba(_Xtr, _w, _b)
+_p_te = predict_proba(_Xte, _w, _b)
+check("predict_proba devuelve probabilidades en (0, 1)",
+      lambda: bool(np.all(_p_te > 0)) and bool(np.all(_p_te < 1)) and np.asarray(_p_te).shape == (240,),
+      msg="una probabilidad por email de test")
+
+def _logloss(y, p):
+    p = np.clip(p, 1e-12, 1 - 1e-12)
+    return float(-np.mean(y * np.log(p) + (1 - y) * np.log(1 - p)))
+
+check("El entrenamiento baja la log-loss por debajo de 0.35",
+      lambda: _logloss(_ytr, _p_tr) < 0.35,
+      msg="el gradiente de la log-loss es X.T @ (p - y) / n; revisa el signo")
+
+_acc_tr = float(np.mean((_p_tr >= 0.5) == _ytr))
+_acc_te = float(np.mean((_p_te >= 0.5) == _yte))
+check("Accuracy en test >= 0.90",
+      lambda: _acc_te >= 0.90,
+      msg="con frecuencias relativas y 3000 épocas deberías rondar 0.92; no sobreajusta")
+check("Sin fuga: accuracy train razonable (< 0.98, hay solape real)",
+      lambda: _acc_tr < 0.98,
+      msg="si aciertas el 100 % del train algo va mal: el dataset tiene solape a propósito")
+`,
+    hints: [
+      'Para la sigmoide estable: si `z >= 0` usa `1/(1+exp(-z))`; si `z < 0`, `exp(z)/(1+exp(z))`. Rellena un array con máscaras booleanas.',
+      'El gradiente de la log-loss respecto a los logits es simplemente `p - y`: `w -= lr * (X.T @ (p - y)) / n`.',
+      'Normaliza por email (cada fila suma 1), no por palabra: así un email largo no pesa más que uno corto.',
+    ],
+  },
+  {
+    id: 'ml-clasico-spam-threshold',
+    title: 'P2.2 · Spam: el umbral que pide el negocio',
+    difficulty: 'INTERMEDIO',
+    xp: 70,
+    statement: [
+      'En producción, el error caro no es «dejar pasar un spam»: es **meter un correo legítimo en la carpeta de spam** (esa factura que el cliente nunca vio). El jefe de producto lo traduce a un número: *precision* $\\geq 0.98$ — de cada 100 correos mandados a spam, como máximo 2 pueden ser buenos.',
+      'El umbral por defecto $u = 0.5$ no lo cumple: hace falta más confianza para mandar algo a spam. Pero subir el umbral a lo bruto (0.99) deja pasar casi todo el spam. La tarea profesional: **maximizar el recall sujeto a la restricción de precision**, afinando el umbral sobre un conjunto de **validación** distinto del de test.',
+      '$$\\text{precision} = \\frac{TP}{TP + FP}, \\qquad \\text{recall} = \\frac{TP}{TP + FN}$$',
+      'Implementa `precision_recall(y, p, umbral)` — con el convenio de que precision = 1.0 si no hay predicciones positivas — y `elegir_umbral(y, p, precision_min=0.98)`, que barra candidatos (por ejemplo `np.linspace(0, 0.999, 200)`) y devuelva como `float` el de **mayor recall** entre los que cumplen la precision mínima. El test entrena el modelo de referencia, te da las probabilidades de validación y evalúa tu umbral en test: precision ≥ 0.95 y recall ≥ 0.70.',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+def precision_recall(y, p, umbral):
+    """Precision y recall clasificando como spam los emails con p >= umbral.
+    Convenio: si no hay predicciones positivas, precision = 1.0."""
+    # TODO: cuenta TP, FP, FN con máscaras booleanas
+    return 0.0, 0.0
+
+def elegir_umbral(y, p, precision_min=0.98):
+    """Umbral (float) que maximiza el recall exigiendo precision >= precision_min."""
+    # TODO: barre candidatos y quédate con el mejor que cumpla la restricción
+    return 0.5
+
+# Caso de juguete para depurar
+y = np.array([1, 1, 1, 0, 0, 0])
+p = np.array([0.9, 0.6, 0.4, 0.7, 0.3, 0.1])
+print(precision_recall(y, p, 0.5))   # esperado: (0.667, 0.667)
+print(elegir_umbral(y, p, 0.98))     # solo 0.9 es spam seguro -> u en (0.7, 0.9]
+`,
+    solution_code: `import numpy as np
+
+def precision_recall(y, p, umbral):
+    y = np.asarray(y)
+    p = np.asarray(p, dtype=float)
+    pred = p >= umbral
+    tp = int(np.sum(pred & (y == 1)))
+    fp = int(np.sum(pred & (y == 0)))
+    fn = int(np.sum((~pred) & (y == 1)))
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 1.0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    return precision, recall
+
+def elegir_umbral(y, p, precision_min=0.98):
+    mejor_u, mejor_recall = 0.5, -1.0
+    for u in np.linspace(0.0, 0.999, 200):
+        prec, rec = precision_recall(y, p, u)
+        if prec >= precision_min and rec > mejor_recall:
+            mejor_recall, mejor_u = rec, u
+    return float(mejor_u)
+`,
+    test_code: `
+_ytoy = np.array([1, 1, 1, 0, 0, 0])
+_ptoy = np.array([0.9, 0.6, 0.4, 0.7, 0.3, 0.1])
+check("precision_recall en caso conocido (u=0.5)",
+      lambda: np.allclose(precision_recall(_ytoy, _ptoy, 0.5), (2/3, 2/3)),
+      msg="predice spam los >= 0.5: [0.9, 0.6, 0.7] -> TP=2, FP=1, FN=1")
+check("Subir el umbral sube la precision y baja el recall",
+      lambda: np.allclose(precision_recall(_ytoy, _ptoy, 0.75), (1.0, 1/3)),
+      msg="con u=0.75 solo entra 0.9: TP=1, FP=0, FN=2")
+check("Si no predices ningún positivo, precision = 1.0 por convenio",
+      lambda: precision_recall(_ytoy, _ptoy, 0.999)[0] == 1.0,
+      msg="evita dividir entre cero: sin predicciones positivas no hay falsos positivos")
+
+# --- Pipeline de referencia: modelo ya entrenado sobre el dataset de emails ---
+SPAM_WORDS = ["gratis", "oferta", "premio", "urgente", "click", "gana", "dinero",
+              "descuento", "promocion", "exclusivo", "regalo", "oportunidad",
+              "loteria", "casino", "credito", "herencia", "millones",
+              "transferencia", "ahora", "limitado"]
+LEGIT_WORDS = ["reunion", "proyecto", "informe", "cliente", "factura", "equipo",
+               "entrega", "revision", "contrato", "calendario", "adjunto",
+               "propuesta", "aprobacion", "presupuesto", "planificacion",
+               "objetivos", "sprint", "diseno", "backend", "frontend",
+               "despliegue", "servidor", "datos", "incidencia", "soporte",
+               "proveedor", "nomina", "vacaciones", "candidato", "entrevista",
+               "onboarding", "documentacion", "actualizacion", "mantenimiento",
+               "metricas", "trimestre", "auditoria", "inventario", "pedido",
+               "minuta"]
+VOCAB = SPAM_WORDS + LEGIT_WORDS
+N_SPAM = len(SPAM_WORDS)
+
+def _make_emails(n=1200, seed=7):
+    rng = np.random.default_rng(seed)
+    y = rng.integers(0, 2, n)
+    X = np.zeros((n, len(VOCAB)))
+    for i in range(n):
+        L = int(rng.poisson(14) + 4)
+        p = 0.38 if y[i] == 1 else 0.09
+        k = int((rng.random(L) < p).sum())
+        palabras = np.concatenate([rng.integers(0, N_SPAM, k),
+                                   rng.integers(N_SPAM, len(VOCAB), L - k)])
+        np.add.at(X[i], palabras, 1)
+    return X, y
+
+def _sig(z):
+    return 1.0 / (1.0 + np.exp(-z))
+
+_X, _y = _make_emails()
+_F = _X / _X.sum(axis=1, keepdims=True)
+_rng = np.random.default_rng(0)
+_idx = _rng.permutation(len(_y))
+_i_te, _i_va, _i_tr = _idx[:250], _idx[250:500], _idx[500:]
+_w = np.zeros(len(VOCAB)); _b = 0.0
+for _t in range(3000):
+    _g = _sig(_F[_i_tr] @ _w + _b) - _y[_i_tr]
+    _w -= 2.0 * (_F[_i_tr].T @ _g) / len(_i_tr)
+    _b -= 2.0 * float(np.mean(_g))
+_p_va = _sig(_F[_i_va] @ _w + _b)
+_p_te = _sig(_F[_i_te] @ _w + _b)
+_y_va, _y_te = _y[_i_va], _y[_i_te]
+
+check("El umbral por defecto (0.5) NO cumple la precision exigida (0.98)",
+      lambda: precision_recall(_y_te, _p_te, 0.5)[0] < 0.98,
+      msg="con u=0.5 se cuelan demasiados correos buenos a la carpeta de spam")
+
+_u = elegir_umbral(_y_va, _p_va, precision_min=0.98)
+check("elegir_umbral devuelve un float en [0, 1]",
+      lambda: isinstance(_u, float) and 0.0 <= _u <= 1.0,
+      msg="devuelve float(umbral)")
+
+_prec_te, _rec_te = precision_recall(_y_te, _p_te, _u)
+check("En test: precision >= 0.95 (el requisito del negocio)",
+      lambda: _prec_te >= 0.95,
+      msg="afinado en validación a 0.98 debería darte margen en test")
+check("En test: recall >= 0.70 (sin sacrificar todo el spam detectado)",
+      lambda: _rec_te >= 0.70,
+      msg="no vale subir el umbral a 0.99: maximiza el recall SUJETO A la precision mínima")
+check("Mejor que un umbral conservador cualquiera (0.9)",
+      lambda: _rec_te >= precision_recall(_y_te, _p_te, 0.9)[1],
+      msg="tu umbral debe encontrar el mejor compromiso, no uno cualquiera")
+`,
+    hints: [
+      'Cuenta con máscaras: `pred = p >= umbral`; `tp = np.sum(pred & (y == 1))`, y lo análogo para FP y FN.',
+      'Barre `np.linspace(0.0, 0.999, 200)` y quédate con el candidato de mayor recall **entre los que cumplen** `precision >= precision_min`.',
+      'El umbral se elige mirando SOLO validación; el test es intocable hasta el final. Si tu recall en test cae por debajo de 0.7, estás siendo más conservador de lo necesario.',
+    ],
+  },
+  {
+    id: 'ml-clasico-spam-metrics',
+    title: 'P2.3 · Spam: matriz de confusión y métricas a mano',
+    difficulty: 'BASICO',
+    xp: 50,
+    statement: [
+      'El informe final del proyecto: un resumen que cualquier *stakeholder* entienda. Sin sklearn — solo conteos.',
+      'Implementa `matriz_confusion(y, p, umbral)` que devuelva la tupla `(tp, fp, tn, fn)` (enteros) clasificando como spam los emails con $p \\geq u$, y `metricas(tp, fp, tn, fn)` que devuelva un diccionario con las cuatro métricas:',
+      '$$\\text{accuracy} = \\frac{TP+TN}{TP+FP+TN+FN}, \\quad \\text{precision} = \\frac{TP}{TP+FP}, \\quad \\text{recall} = \\frac{TP}{TP+FN}, \\quad F_1 = \\frac{2 \\cdot P \\cdot R}{P + R}$$',
+      'Protege las divisiones: si no hay predicciones positivas ($TP+FP=0$) precision = 0.0; si no hay positivos reales, recall = 0.0; y si $P + R = 0$, $F_1 = 0.0$.',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+def matriz_confusion(y, p, umbral):
+    """Devuelve (tp, fp, tn, fn) clasificando como positivo p >= umbral."""
+    # TODO: cuatro conteos con máscaras booleanas
+    return 0, 0, 0, 0
+
+def metricas(tp, fp, tn, fn):
+    """Diccionario con accuracy, precision, recall y f1."""
+    # TODO: protege los denominadores
+    return {"accuracy": 0.0, "precision": 0.0, "recall": 0.0, "f1": 0.0}
+
+y = np.array([1, 1, 1, 0, 0, 0])
+p = np.array([0.9, 0.6, 0.4, 0.7, 0.3, 0.1])
+tp, fp, tn, fn = matriz_confusion(y, p, 0.5)
+print((tp, fp, tn, fn))        # esperado: (2, 1, 2, 1)
+print(metricas(tp, fp, tn, fn))
+`,
+    solution_code: `import numpy as np
+
+def matriz_confusion(y, p, umbral):
+    y = np.asarray(y)
+    pred = np.asarray(p, dtype=float) >= umbral
+    tp = int(np.sum(pred & (y == 1)))
+    fp = int(np.sum(pred & (y == 0)))
+    tn = int(np.sum((~pred) & (y == 0)))
+    fn = int(np.sum((~pred) & (y == 1)))
+    return tp, fp, tn, fn
+
+def metricas(tp, fp, tn, fn):
+    accuracy = (tp + tn) / (tp + fp + tn + fn)
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+    return {"accuracy": accuracy, "precision": precision,
+            "recall": recall, "f1": f1}
+`,
+    test_code: `
+_ytoy = np.array([1, 1, 1, 0, 0, 0])
+_ptoy = np.array([0.9, 0.6, 0.4, 0.7, 0.3, 0.1])
+check("matriz_confusion en caso conocido (u=0.5) -> (2, 1, 2, 1)",
+      lambda: matriz_confusion(_ytoy, _ptoy, 0.5) == (2, 1, 2, 1),
+      msg="predichos positivos: 0.9, 0.6, 0.7 -> TP=2 (los dos primeros), FP=1 (el 0.7 legítimo); FN=1 (el 0.4 spam), TN=2")
+check("Todo negativo: (0, 0, 3, 3)",
+      lambda: matriz_confusion(_ytoy, _ptoy, 0.999) == (0, 0, 3, 3),
+      msg="con umbral altísimo nadie entra en spam: todo son TN y FN")
+check("Los cuatro conteos suman el total de emails",
+      lambda: sum(matriz_confusion(_ytoy, _ptoy, 0.5)) == 6,
+      msg="TP + FP + TN + FN = número de muestras")
+
+_m = metricas(2, 1, 2, 1)
+check("accuracy = (TP+TN)/total = 4/6",
+      lambda: np.allclose(_m["accuracy"], 4/6),
+      msg="aciertos (verdaderos) entre el total")
+check("precision = TP/(TP+FP) = 2/3 y recall = TP/(TP+FN) = 2/3",
+      lambda: np.allclose(_m["precision"], 2/3) and np.allclose(_m["recall"], 2/3),
+      msg="precision: de lo que mandaste a spam, cuánto era spam; recall: del spam real, cuánto cazaste")
+check("F1 = media armónica de precision y recall",
+      lambda: np.allclose(_m["f1"], 2/3),
+      msg="F1 = 2·P·R/(P+R); con P=R=2/3 queda 2/3")
+check("Sin positivos predichos no hay divisiones entre cero",
+      lambda: metricas(0, 0, 3, 3)["precision"] == 0.0 and metricas(0, 0, 3, 3)["f1"] == 0.0,
+      msg="protege los denominadores con un condicional")
+
+# Consistencia sobre un pipeline realista (umbral 0.6)
+_rng = np.random.default_rng(11)
+_ybig = _rng.integers(0, 2, 400)
+_pbig = np.clip(_rng.normal(0.35 + 0.4 * _ybig, 0.18), 0, 1)
+_tp, _fp, _tn, _fn = matriz_confusion(_ybig, _pbig, 0.6)
+_pred = _pbig >= 0.6
+check("Tus conteos coinciden con la referencia vectorizada",
+      lambda: (_tp, _fp, _tn, _fn) == (int(np.sum(_pred & (_ybig == 1))),
+                                       int(np.sum(_pred & (_ybig == 0))),
+                                       int(np.sum((~_pred) & (_ybig == 0))),
+                                       int(np.sum((~_pred) & (_ybig == 1)))),
+      msg="cuenta con máscaras booleanas: pred & (y == 1), etc.")
+_mb = metricas(_tp, _fp, _tn, _fn)
+check("Métricas consistentes con la referencia",
+      lambda: np.allclose(_mb["accuracy"], float(np.mean(_pred == _ybig)))
+              and np.allclose(_mb["recall"], _tp / (_tp + _fn)),
+      msg="accuracy = media de (pred == y); recall = TP/(TP+FN)")
+`,
+    hints: [
+      'Las cuatro máscaras: `pred & (y == 1)` (TP), `pred & (y == 0)` (FP), `(~pred) & (y == 0)` (TN), `(~pred) & (y == 1)` (FN). Envuelve con `int(...)`.',
+      'Escribe cada métrica con un condicional para el denominador: `tp / (tp + fp) if (tp + fp) > 0 else 0.0`.',
+      'F1 es la media armónica: `2 * p * r / (p + r)` — calcula primero precision y recall y reutilízalas.',
     ],
   },
 ]
