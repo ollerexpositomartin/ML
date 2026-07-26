@@ -479,3 +479,1335 @@ check("El atajo suma la entrada intacta (gradient flow)", lambda: _ac(
     ],
   },
 ]
+
+/* ------------------------------------------------------------------ */
+/* Mini-proyecto · Clasificador gatos vs perros (ids `cnn-pets-*`)     */
+/* Pipeline completo: dataset sintético -> forward -> train -> eval.   */
+/* Cada ejercicio es autocontenido (el grading es stateless).          */
+/* ------------------------------------------------------------------ */
+
+export const CNN_PETS_EXERCISES: Exercise[] = [
+  {
+    id: 'cnn-pets-dataset',
+    title: 'P1 · El dataset: gatos y perros sintéticos',
+    difficulty: 'BASICO',
+    xp: 40,
+    statement: String.raw`Todo proyecto de visión empieza igual: **los datos**. En producción descargarías algo como \`dogs-vs-cats\` de Kaggle (25 000 fotos reales); aquí, como el navegador no tiene datasets externos, generamos uno **sintético pero realista**: \`make_pets\` dibuja gatos (etiqueta 1, cabeza redondeada con orejas triangulares puntiagudas) y perros (etiqueta 0, orejas caídas y redondeadas a los lados) en imágenes de $16 \times 16$, con traslaciones de hasta $\pm 2$ píxeles, cambios de escala del $\pm 15\%$, intensidad variable y ruido gaussiano. La misma variabilidad que encontrarías en fotos de verdad.
+
+Tu trabajo tiene tres partes:
+
+1. **Genera** el dataset con \`make_pets(n_per_class=60, seed=7)\` y **explóralo**: calcula \`media_perros\` y \`media_gatos\` (media de píxel por clase). Spoiler: salen casi idénticas — la estadística global no distingue clases; hace falta estructura espacial, y para eso existe la convolución.
+2. **Implementa \`split_train_test(X, y, test_ratio=0.2, seed=42)\`**: split **estratificado** (cada clase se reparte 80/20 por separado), **mezclado** (los índices se barajan con la semilla) y **reproducible** (misma semilla, mismo split). En la vida real un split mal hecho es el error silencioso más caro: si hay fuga entre train y test, tus métricas mienten.
+3. Mira la figura con 4 perros y 4 gatos que se genera al final. ¿Los distinguirías tú? La CNN también podrá, pero solo si los datos están bien preparados.
+
+Los tests comprueban shapes, balance de clases, estratificación, mezcla, reproducibilidad y que **train y test no comparten ni un solo ejemplo**.`,
+    starter_code: `import numpy as np
+import matplotlib.pyplot as plt
+
+# ============================================================
+# GENERADOR DEL DATASET (ya implementado: estúdialo, no lo toques)
+# ============================================================
+def make_pets(n_per_class=60, seed=7):
+    """Gatos (etiqueta 1) y perros (etiqueta 0) sintéticos: 16x16, float en [0, 1].
+
+    Gato:  cabeza redondeada + dos orejas TRIANGULARES puntiagudas arriba.
+    Perro: cabeza redondeada + dos orejas CAIDAS y redondeadas a los lados.
+    Variabilidad real: traslación (+-2 px), escala (+-15 %), intensidad
+    variable y ruido gaussiano. La semilla fija lo hace reproducible.
+    """
+    rng = np.random.default_rng(seed)
+    H = W = 16
+    yy, xx = np.mgrid[0:H, 0:W]
+    imgs, labels = [], []
+    for cls in (0, 1):
+        for _ in range(n_per_class):
+            img = np.zeros((H, W))
+            # centro y escala del animal
+            cx = (W - 1) / 2 + rng.uniform(-2, 2)
+            cy = (H - 1) / 2 + 1.0 + rng.uniform(-1.3, 1.3)
+            s = rng.uniform(0.85, 1.15)
+            r = 4.2 * s
+            cabeza = ((xx - cx) ** 2 + (yy - cy) ** 2) <= r ** 2
+            img[cabeza] = 1.0
+            for signo in (-1, 1):
+                ex = cx + signo * r * 0.8
+                if cls == 1:
+                    # oreja de gato: triángulo que sobresale por encima de la cabeza
+                    ey = cy - r * 0.45
+                    alto, ancho = 3.4 * s, 2.0 * s
+                    t = (ey - yy) / alto  # 0 en la base, 1 en la punta
+                    tri = (yy <= ey) & (yy >= ey - alto) & (np.abs(xx - ex) <= ancho * (1.0 - t))
+                    img[tri] = 1.0
+                else:
+                    # oreja de perro: elipse vertical que cuelga del costado
+                    ey = cy - r * 0.30
+                    oreja = ((xx - ex) ** 2 / (1.6 * s) ** 2
+                             + (yy - ey) ** 2 / (2.9 * s) ** 2) <= 1
+                    img[oreja] = 1.0
+            img = img * rng.uniform(0.6, 1.0)           # intensidad variable
+            img = img + rng.normal(0.0, 0.09, (H, W))   # ruido gaussiano
+            img = np.clip(img, 0.0, 1.0)
+            imgs.append(img)
+            labels.append(cls)
+    return np.array(imgs), np.array(labels, dtype=int)
+
+# ---------------------------------------------------------------
+# 1) Genera el dataset: 60 ejemplos por clase, semilla 7
+# ---------------------------------------------------------------
+X, y = make_pets(n_per_class=60, seed=7)
+
+# ---------------------------------------------------------------
+# 2) TODO: explora el dataset (media de píxel por clase)
+# ---------------------------------------------------------------
+media_perros = 0.0  # TODO: media de X sobre los ejemplos con y == 0
+media_gatos = 0.0   # TODO: media de X sobre los ejemplos con y == 1
+print('media de píxel  perros:', media_perros, ' gatos:', media_gatos)
+
+# ---------------------------------------------------------------
+# 3) TODO: split train/test ESTRATIFICADO 80/20, mezclado y reproducible
+# ---------------------------------------------------------------
+def split_train_test(X, y, test_ratio=0.2, seed=42):
+    """Devuelve (X_train, X_test, y_train, y_test).
+
+    Estratificado: cada clase aporta el mismo porcentaje a test.
+    Mezclado: el orden dentro de cada split es aleatorio (según seed).
+    """
+    # TODO: para cada clase, baraja sus índices con el rng y reparte 80/20;
+    # al final, baraja también los índices concatenados de train y de test
+    rng = np.random.default_rng(seed)
+    return X[:0], X[:0], y[:0], y[:0]
+
+X_train, X_test, y_train, y_test = split_train_test(X, y)
+print('train:', X_train.shape, ' test:', X_test.shape)
+
+# ---------------------------------------------------------------
+# 4) Visualiza 4 perros y 4 gatos (ya implementado)
+# ---------------------------------------------------------------
+fig, axes = plt.subplots(2, 4, figsize=(8, 4))
+for i in range(4):
+    axes[0, i].imshow(X[y == 0][i], cmap='gray', vmin=0, vmax=1)
+    axes[0, i].set_title('perro')
+    axes[1, i].imshow(X[y == 1][i], cmap='gray', vmin=0, vmax=1)
+    axes[1, i].set_title('gato')
+for ax in axes.ravel():
+    ax.axis('off')
+plt.tight_layout()
+plt.show()
+`,
+    solution_code: `import numpy as np
+import matplotlib.pyplot as plt
+
+def make_pets(n_per_class=60, seed=7):
+    """Gatos (etiqueta 1) y perros (etiqueta 0) sintéticos: 16x16, float en [0, 1]."""
+    rng = np.random.default_rng(seed)
+    H = W = 16
+    yy, xx = np.mgrid[0:H, 0:W]
+    imgs, labels = [], []
+    for cls in (0, 1):
+        for _ in range(n_per_class):
+            img = np.zeros((H, W))
+            cx = (W - 1) / 2 + rng.uniform(-2, 2)
+            cy = (H - 1) / 2 + 1.0 + rng.uniform(-1.3, 1.3)
+            s = rng.uniform(0.85, 1.15)
+            r = 4.2 * s
+            cabeza = ((xx - cx) ** 2 + (yy - cy) ** 2) <= r ** 2
+            img[cabeza] = 1.0
+            for signo in (-1, 1):
+                ex = cx + signo * r * 0.8
+                if cls == 1:
+                    ey = cy - r * 0.45
+                    alto, ancho = 3.4 * s, 2.0 * s
+                    t = (ey - yy) / alto
+                    tri = (yy <= ey) & (yy >= ey - alto) & (np.abs(xx - ex) <= ancho * (1.0 - t))
+                    img[tri] = 1.0
+                else:
+                    ey = cy - r * 0.30
+                    oreja = ((xx - ex) ** 2 / (1.6 * s) ** 2
+                             + (yy - ey) ** 2 / (2.9 * s) ** 2) <= 1
+                    img[oreja] = 1.0
+            img = img * rng.uniform(0.6, 1.0)
+            img = img + rng.normal(0.0, 0.09, (H, W))
+            img = np.clip(img, 0.0, 1.0)
+            imgs.append(img)
+            labels.append(cls)
+    return np.array(imgs), np.array(labels, dtype=int)
+
+X, y = make_pets(n_per_class=60, seed=7)
+
+media_perros = X[y == 0].mean()
+media_gatos = X[y == 1].mean()
+print('media de píxel  perros:', round(float(media_perros), 4),
+      ' gatos:', round(float(media_gatos), 4))
+print('(casi idénticas: la media global no distingue; hace falta estructura espacial)')
+
+def split_train_test(X, y, test_ratio=0.2, seed=42):
+    """Split estratificado 80/20, mezclado y reproducible."""
+    rng = np.random.default_rng(seed)
+    idx_train, idx_test = [], []
+    for cls in np.unique(y):
+        idx = np.where(y == cls)[0].copy()
+        rng.shuffle(idx)
+        n_test = int(round(len(idx) * test_ratio))
+        idx_test.extend(idx[:n_test])
+        idx_train.extend(idx[n_test:])
+    idx_train = np.array(idx_train)
+    idx_test = np.array(idx_test)
+    rng.shuffle(idx_train)
+    rng.shuffle(idx_test)
+    return X[idx_train], X[idx_test], y[idx_train], y[idx_test]
+
+X_train, X_test, y_train, y_test = split_train_test(X, y)
+print('train:', X_train.shape, ' test:', X_test.shape)
+
+fig, axes = plt.subplots(2, 4, figsize=(8, 4))
+for i in range(4):
+    axes[0, i].imshow(X[y == 0][i], cmap='gray', vmin=0, vmax=1)
+    axes[0, i].set_title('perro')
+    axes[1, i].imshow(X[y == 1][i], cmap='gray', vmin=0, vmax=1)
+    axes[1, i].set_title('gato')
+for ax in axes.ravel():
+    ax.axis('off')
+plt.tight_layout()
+plt.show()
+`,
+    test_code: `
+check("Dataset: 120 imágenes de 16x16 y 120 etiquetas",
+      lambda: X.shape == (120, 16, 16) and y.shape == (120,),
+      msg="Genera con make_pets(n_per_class=60, seed=7): 60 + 60 = 120 imágenes")
+
+check("60 perros (0) y 60 gatos (1)",
+      lambda: int((y == 0).sum()) == 60 and int((y == 1).sum()) == 60,
+      msg="n_per_class=60 para cada clase")
+
+check("Píxeles dentro de [0, 1]",
+      lambda: float(X.min()) >= 0.0 and float(X.max()) <= 1.0,
+      msg="Las imágenes vienen clipeadas a [0, 1]; no las reescales")
+
+check("Medias por clase correctas (y casi iguales: ese es el punto)",
+      lambda: abs(float(media_perros) - 0.24086866293950013) < 1e-6
+              and abs(float(media_gatos) - 0.24115969934387832) < 1e-6,
+      msg="media_perros = X[y == 0].mean() y media_gatos = X[y == 1].mean(), con el dataset de semilla 7")
+
+check("Split 80/20: 96 en train y 24 en test",
+      lambda: X_train.shape == (96, 16, 16) and X_test.shape == (24, 16, 16)
+              and y_train.shape == (96,) and y_test.shape == (24,),
+      msg="El 20 % de 60 por clase son 12 por clase en test: 24 en total")
+
+check("Estratificado: 48/48 en train y 12/12 en test",
+      lambda: int((y_train == 0).sum()) == 48 and int((y_train == 1).sum()) == 48
+              and int((y_test == 0).sum()) == 12 and int((y_test == 1).sum()) == 12,
+      msg="Haz el split DENTRO de cada clase: np.where(y == cls), baraja y reparte 80/20")
+
+check("Los splits están mezclados (no ordenados por clase)",
+      lambda: not np.array_equal(np.sort(y_train), y_train)
+              and not np.array_equal(np.sort(y_test), y_test),
+      msg="Después de concatenar las clases, baraja los índices de train y de test con el mismo rng")
+
+check("Reproducible: misma semilla, mismo split",
+      lambda: (lambda a: np.array_equal(a[0], X_train) and np.array_equal(a[1], X_test)
+               and np.array_equal(a[2], y_train) and np.array_equal(a[3], y_test)
+               )(split_train_test(X, y)),
+      msg="Usa np.random.default_rng(seed) dentro de la función y el parámetro seed=42 por defecto")
+
+check("Sin fuga de datos: train y test son disjuntos y cubren los 120 ejemplos",
+      lambda: np.unique(np.concatenate([X_train.reshape(len(X_train), -1),
+                                        X_test.reshape(len(X_test), -1)]), axis=0).shape[0] == 120,
+      msg="Cada índice de clase va a train O a test, nunca a ambos; entre los dos suman 120")
+`,
+    hints: [
+      'Para la media por clase usa indexado booleano: `X[y == 0].mean()`.',
+      'Estratificado = recorre `np.unique(y)`; para cada clase toma `np.where(y == cls)[0]`, barájalo con `rng.shuffle` y reparte: los primeros `n_test` a test, el resto a train.',
+      'Tras concatenar las clases, vuelve a barajar `idx_train` e `idx_test` (con el mismo `rng`) para que el orden no venga por bloques.',
+    ],
+  },
+  {
+    id: 'cnn-pets-forward',
+    title: 'P2 · Forward de la mini-CNN',
+    difficulty: 'INTERMEDIO',
+    xp: 80,
+    statement: String.raw`Con los datos listos, toca la máquina. Vas a implementar el **forward completo** de una mini-CNN de verdad:
+
+$$\text{conv } 1 \to 4 \text{ filtros } 3\times 3 + b \;\rightarrow\; \mathrm{ReLU} \;\rightarrow\; \text{maxpool } 2\times 2 \;\rightarrow\; \text{flatten } (196) \;\rightarrow\; \text{densa } 196 \to 2 \;\rightarrow\; \text{softmax}$$
+
+Las piezas ya las tienes de los ejercicios del tema: \`conv2d\` (tu E1), \`max_pool2d\` (tu E2) y \`softmax\`. Los pesos convolucionales \`K_PRE\`, \`B_PRE\` vienen **ya entrenados** — en el siguiente ejercicio verás que eso es exactamente transfer learning — y la cabeza \`W2, b2\` está inicializada al azar.
+
+Implementa \`forward(X, params)\`: para un batch $X \in (N, 16, 16)$ devuelve $P \in (N, 2)$ con la probabilidad de perro y de gato de cada imagen. Vigila las dimensiones: convolución válida $16 \to 14$, maxpool $14 \to 7$, y el flatten concatena los 4 mapas de $7 \times 7$: $4 \cdot 49 = 196$.
+
+Con la cabeza sin entrenar las probabilidades serán casi un volado: el test no evalúa aciertos todavía, sino que tu pipeline sea **numéricamente correcto** contra una referencia independiente.`,
+    starter_code: `import numpy as np
+
+# ============================================================
+# BLOQUE 1 · dataset (del ejercicio anterior, ya resuelto)
+# ============================================================
+def make_pets(n_per_class=60, seed=7):
+    """Gatos (1) y perros (0) sintéticos: 16x16, float en [0, 1]."""
+    rng = np.random.default_rng(seed)
+    H = W = 16
+    yy, xx = np.mgrid[0:H, 0:W]
+    imgs, labels = [], []
+    for cls in (0, 1):
+        for _ in range(n_per_class):
+            img = np.zeros((H, W))
+            cx = (W - 1) / 2 + rng.uniform(-2, 2)
+            cy = (H - 1) / 2 + 1.0 + rng.uniform(-1.3, 1.3)
+            s = rng.uniform(0.85, 1.15)
+            r = 4.2 * s
+            cabeza = ((xx - cx) ** 2 + (yy - cy) ** 2) <= r ** 2
+            img[cabeza] = 1.0
+            for signo in (-1, 1):
+                ex = cx + signo * r * 0.8
+                if cls == 1:
+                    ey = cy - r * 0.45
+                    alto, ancho = 3.4 * s, 2.0 * s
+                    t = (ey - yy) / alto
+                    tri = (yy <= ey) & (yy >= ey - alto) & (np.abs(xx - ex) <= ancho * (1.0 - t))
+                    img[tri] = 1.0
+                else:
+                    ey = cy - r * 0.30
+                    oreja = ((xx - ex) ** 2 / (1.6 * s) ** 2
+                             + (yy - ey) ** 2 / (2.9 * s) ** 2) <= 1
+                    img[oreja] = 1.0
+            img = img * rng.uniform(0.6, 1.0)
+            img = img + rng.normal(0.0, 0.09, (H, W))
+            img = np.clip(img, 0.0, 1.0)
+            imgs.append(img)
+            labels.append(cls)
+    return np.array(imgs), np.array(labels, dtype=int)
+
+def split_train_test(X, y, test_ratio=0.2, seed=42):
+    """Split estratificado 80/20, mezclado y reproducible."""
+    rng = np.random.default_rng(seed)
+    idx_train, idx_test = [], []
+    for cls in np.unique(y):
+        idx = np.where(y == cls)[0].copy()
+        rng.shuffle(idx)
+        n_test = int(round(len(idx) * test_ratio))
+        idx_test.extend(idx[:n_test])
+        idx_train.extend(idx[n_test:])
+    idx_train = np.array(idx_train)
+    idx_test = np.array(idx_test)
+    rng.shuffle(idx_train)
+    rng.shuffle(idx_test)
+    return X[idx_train], X[idx_test], y[idx_train], y[idx_test]
+
+# ============================================================
+# BLOQUE 2 · piezas de la mini-CNN (ya implementadas)
+# ============================================================
+def conv2d(img, kernel):
+    """Convolución 2D válida (sin padding, stride 1): 16x16 -> 14x14 con k=3."""
+    H, W = img.shape
+    k = kernel.shape[0]
+    Ho, Wo = H - k + 1, W - k + 1
+    out = np.zeros((Ho, Wo))
+    for u in range(k):
+        for v in range(k):
+            out += img[u:u + Ho, v:v + Wo] * kernel[u, v]
+    return out
+
+def max_pool2d(x, size=2, stride=2):
+    """Max-pooling: 14x14 -> 7x7 con ventana 2x2."""
+    H, W = x.shape
+    Ho = (H - size) // stride + 1
+    Wo = (W - size) // stride + 1
+    out = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            out[i, j] = np.max(x[i * stride:i * stride + size, j * stride:j * stride + size])
+    return out
+
+def softmax(Z):
+    """Softmax por filas, con el truco de estabilidad de restar el máximo."""
+    Z = Z - Z.max(axis=1, keepdims=True)
+    E = np.exp(Z)
+    return E / E.sum(axis=1, keepdims=True)
+
+# Pesos de la convolución: ya ENTRENADOS (imagina que los descargas,
+# como una ResNet preentrenada). No los toques: la conv va CONGELADA.
+K_PRE = np.array([
+    [[-0.582732, -0.96122 , -0.130555],
+     [ 0.212956,  0.399228,  0.137924],
+     [-0.351721, -0.452611,  0.838434]],
+    [[ 2.409266,  0.256254,  0.219415],
+     [-1.514992,  0.831379,  0.470307],
+     [-1.498307, -1.111171, -0.721306]],
+    [[-0.317758, -0.327833, -0.822538],
+     [ 0.70584 , -0.29698 , -0.522749],
+     [ 0.496246,  1.057557, -1.133512]],
+    [[-0.128364, -0.490374, -0.086576],
+     [-0.644709,  0.009952, -0.018955],
+     [-0.152168, -0.523963, -0.198095]]])
+B_PRE = np.array([0.16525, 0.346522, 0.071384, -0.002053])
+
+# Cabeza densa (196 -> 2): inicializada al azar, TODAVÍA sin entrenar
+rng = np.random.default_rng(0)
+W2 = rng.normal(0.0, 0.1, size=(196, 2))
+b2 = np.zeros(2)
+
+# ============================================================
+# BLOQUE 3 · TU TRABAJO: el forward completo
+# ============================================================
+def forward(X, params):
+    """Propagación completa de la mini-CNN.
+
+    Arquitectura (por imagen):
+      conv 1->4 filtros 3x3 + sesgo -> ReLU -> maxpool 2x2 -> flatten (196)
+      -> dense 196x2 -> softmax
+    X: (N, 16, 16). params = (K_PRE, B_PRE, W2, b2).
+    Devuelve P: (N, 2) con la probabilidad de cada clase (perro, gato).
+    """
+    K, B, W2, b2 = params
+    # TODO: recorre las imágenes; para cada una, aplica los 4 filtros
+    # (conv2d + sesgo -> ReLU -> max_pool2d), aplana y concatena los mapas
+    # (196 features), y al final softmax(F @ W2 + b2)
+    return np.zeros((len(X), 2))
+
+# ---------------------------------------------------------------
+# Prueba rápida: forward de 5 imágenes de test (cabeza sin entrenar)
+# ---------------------------------------------------------------
+X_full, y_full = make_pets(n_per_class=60, seed=7)
+X_train, X_test, y_train, y_test = split_train_test(X_full, y_full)
+P = forward(X_test[:5], (K_PRE, B_PRE, W2, b2))
+print('probabilidades [perro, gato] con la cabeza aún sin entrenar:')
+print(np.round(P, 3))
+print('etiquetas reales:', y_test[:5])
+`,
+    solution_code: `import numpy as np
+
+def make_pets(n_per_class=60, seed=7):
+    """Gatos (1) y perros (0) sintéticos: 16x16, float en [0, 1]."""
+    rng = np.random.default_rng(seed)
+    H = W = 16
+    yy, xx = np.mgrid[0:H, 0:W]
+    imgs, labels = [], []
+    for cls in (0, 1):
+        for _ in range(n_per_class):
+            img = np.zeros((H, W))
+            cx = (W - 1) / 2 + rng.uniform(-2, 2)
+            cy = (H - 1) / 2 + 1.0 + rng.uniform(-1.3, 1.3)
+            s = rng.uniform(0.85, 1.15)
+            r = 4.2 * s
+            cabeza = ((xx - cx) ** 2 + (yy - cy) ** 2) <= r ** 2
+            img[cabeza] = 1.0
+            for signo in (-1, 1):
+                ex = cx + signo * r * 0.8
+                if cls == 1:
+                    ey = cy - r * 0.45
+                    alto, ancho = 3.4 * s, 2.0 * s
+                    t = (ey - yy) / alto
+                    tri = (yy <= ey) & (yy >= ey - alto) & (np.abs(xx - ex) <= ancho * (1.0 - t))
+                    img[tri] = 1.0
+                else:
+                    ey = cy - r * 0.30
+                    oreja = ((xx - ex) ** 2 / (1.6 * s) ** 2
+                             + (yy - ey) ** 2 / (2.9 * s) ** 2) <= 1
+                    img[oreja] = 1.0
+            img = img * rng.uniform(0.6, 1.0)
+            img = img + rng.normal(0.0, 0.09, (H, W))
+            img = np.clip(img, 0.0, 1.0)
+            imgs.append(img)
+            labels.append(cls)
+    return np.array(imgs), np.array(labels, dtype=int)
+
+def split_train_test(X, y, test_ratio=0.2, seed=42):
+    """Split estratificado 80/20, mezclado y reproducible."""
+    rng = np.random.default_rng(seed)
+    idx_train, idx_test = [], []
+    for cls in np.unique(y):
+        idx = np.where(y == cls)[0].copy()
+        rng.shuffle(idx)
+        n_test = int(round(len(idx) * test_ratio))
+        idx_test.extend(idx[:n_test])
+        idx_train.extend(idx[n_test:])
+    idx_train = np.array(idx_train)
+    idx_test = np.array(idx_test)
+    rng.shuffle(idx_train)
+    rng.shuffle(idx_test)
+    return X[idx_train], X[idx_test], y[idx_train], y[idx_test]
+
+def conv2d(img, kernel):
+    """Convolución 2D válida (sin padding, stride 1)."""
+    H, W = img.shape
+    k = kernel.shape[0]
+    Ho, Wo = H - k + 1, W - k + 1
+    out = np.zeros((Ho, Wo))
+    for u in range(k):
+        for v in range(k):
+            out += img[u:u + Ho, v:v + Wo] * kernel[u, v]
+    return out
+
+def max_pool2d(x, size=2, stride=2):
+    """Max-pooling con ventana 2x2."""
+    H, W = x.shape
+    Ho = (H - size) // stride + 1
+    Wo = (W - size) // stride + 1
+    out = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            out[i, j] = np.max(x[i * stride:i * stride + size, j * stride:j * stride + size])
+    return out
+
+def softmax(Z):
+    """Softmax por filas, con el truco de estabilidad de restar el máximo."""
+    Z = Z - Z.max(axis=1, keepdims=True)
+    E = np.exp(Z)
+    return E / E.sum(axis=1, keepdims=True)
+
+K_PRE = np.array([
+    [[-0.582732, -0.96122 , -0.130555],
+     [ 0.212956,  0.399228,  0.137924],
+     [-0.351721, -0.452611,  0.838434]],
+    [[ 2.409266,  0.256254,  0.219415],
+     [-1.514992,  0.831379,  0.470307],
+     [-1.498307, -1.111171, -0.721306]],
+    [[-0.317758, -0.327833, -0.822538],
+     [ 0.70584 , -0.29698 , -0.522749],
+     [ 0.496246,  1.057557, -1.133512]],
+    [[-0.128364, -0.490374, -0.086576],
+     [-0.644709,  0.009952, -0.018955],
+     [-0.152168, -0.523963, -0.198095]]])
+B_PRE = np.array([0.16525, 0.346522, 0.071384, -0.002053])
+
+rng = np.random.default_rng(0)
+W2 = rng.normal(0.0, 0.1, size=(196, 2))
+b2 = np.zeros(2)
+
+def forward(X, params):
+    """Propagación completa: conv 1->4 (3x3) + ReLU -> maxpool 2x2 -> flatten -> dense -> softmax."""
+    K, B, W2, b2 = params
+    features = []
+    for img in X:
+        mapas = []
+        for f in range(len(K)):
+            relu = np.maximum(0.0, conv2d(img, K[f]) + B[f])
+            mapas.append(max_pool2d(relu))
+        features.append(np.concatenate([m.ravel() for m in mapas]))
+    F = np.array(features)          # (N, 196)
+    return softmax(F @ W2 + b2)     # (N, 2)
+
+X_full, y_full = make_pets(n_per_class=60, seed=7)
+X_train, X_test, y_train, y_test = split_train_test(X_full, y_full)
+P = forward(X_test[:5], (K_PRE, B_PRE, W2, b2))
+print('probabilidades [perro, gato] con la cabeza aún sin entrenar:')
+print(np.round(P, 3))
+print('etiquetas reales:', y_test[:5])
+`,
+    test_code: `
+def _ac(a, b, rtol=1e-7, atol=0.0):
+    npt.assert_allclose(a, b, rtol=rtol, atol=atol)
+    return True
+
+def _ref_forward(Xb):
+    # referencia independiente: conv 3x3 válida + sesgo -> ReLU -> maxpool 2x2 -> dense -> softmax
+    sal = []
+    for img in Xb:
+        mapas = []
+        for f in range(4):
+            H, W = img.shape
+            conv = np.zeros((H - 2, W - 2))
+            for u in range(3):
+                for v in range(3):
+                    conv += img[u:u + H - 2, v:v + W - 2] * K_PRE[f][u, v]
+            relu = np.maximum(conv + B_PRE[f], 0.0)
+            pooled = np.zeros((7, 7))
+            for i in range(7):
+                for j in range(7):
+                    pooled[i, j] = relu[2 * i:2 * i + 2, 2 * j:2 * j + 2].max()
+            mapas.append(pooled.ravel())
+        sal.append(np.concatenate(mapas))
+    F = np.array(sal)
+    Z = F @ W2 + b2
+    Z = Z - Z.max(axis=1, keepdims=True)
+    E = np.exp(Z)
+    return E / E.sum(axis=1, keepdims=True)
+
+_lote = X_test[:6]
+_P = forward(_lote, (K_PRE, B_PRE, W2, b2))
+
+check("Devuelve (N, 2): una fila de probabilidades por imagen",
+      lambda: _P.shape == (6, 2),
+      msg="forward(X_test[:6], params) debe tener shape (6, 2), y llegó " + str(_P.shape))
+
+check("Funciona también con una sola imagen",
+      lambda: forward(X_test[:1], (K_PRE, B_PRE, W2, b2)).shape == (1, 2),
+      msg="Recorre el batch con un bucle (o vectoriza) sin asumir un N concreto")
+
+check("Cada fila suma 1 (es una softmax)",
+      lambda: _ac(_P.sum(axis=1), np.ones(6), atol=1e-6),
+      msg="Aplica softmax a los logits: exp(Z - max) / suma; cada fila debe sumar 1")
+
+check("Valores exactos vs la referencia",
+      lambda: _ac(_P, _ref_forward(_lote), atol=1e-8),
+      msg="Orden: conv2d + B_PRE[f] -> ReLU -> max_pool2d -> concatena los 4 mapas aplanados (196) -> @ W2 + b2 -> softmax")
+
+check("Determinista: dos llamadas, mismo resultado",
+      lambda: _ac(forward(_lote, (K_PRE, B_PRE, W2, b2)), _P, atol=1e-12),
+      msg="El forward no debe consumir aleatoriedad: mismos datos y pesos, mismas probabilidades")
+
+check("No destroza los pesos: W2 y b2 siguen intactos tras llamar a forward",
+      lambda: W2.shape == (196, 2) and b2.shape == (2,),
+      msg="forward solo LEE los parámetros; no los modifiques dentro")
+`,
+    hints: [
+      'Bucle externo sobre las imágenes del batch; interno sobre los 4 filtros: `relu = np.maximum(0.0, conv2d(img, K[f]) + B[f])` y luego `max_pool2d(relu)`.',
+      'El flatten es `np.concatenate([m.ravel() for m in mapas])`: 4 mapas de 7x7 = 196 features por imagen.',
+      'Al final: `F = np.array(features)` y `return softmax(F @ W2 + b2)`. La softmax ya resta el máximo (estabilidad).',
+    ],
+  },
+  {
+    id: 'cnn-pets-train',
+    title: 'P3 · Entrenamiento: transfer learning en miniatura',
+    difficulty: 'AVANZADO',
+    xp: 140,
+    statement: String.raw`Aquí viene la idea más rentable del módulo para tu vida profesional: **casi nadie entrena una CNN desde cero**. Lo que se hace en la práctica es descargar una red preentrenada (ResNet, ViT...) sobre millones de imágenes, **congelar** sus capas convolucionales — que ya saben extraer bordes, texturas y formas — y entrenar solo la **cabeza** final para tu problema. Eso es *transfer learning*, y es exactamente lo que harás aquí: \`K_PRE\` y \`B_PRE\` van congelados (son tu "ResNet preentrenada") y tú entrenas la densa $196 \to 2$ con softmax + cross-entropy.
+
+Implementa \`entrenar_cabeza(F, y, lr=0.5, epochs=300)\` con gradiente descendente a batch completo:
+
+$$Z = F W_2 + b_2, \qquad P = \mathrm{softmax}(Z), \qquad L = -\frac{1}{n}\sum_i \log P_{i,\, y_i}$$
+
+$$\frac{\partial L}{\partial Z} = \frac{P - Y}{n}, \qquad \frac{\partial L}{\partial W_2} = F^\top \frac{P - Y}{n}, \qquad \frac{\partial L}{\partial b_2} = \sum_i \frac{(P - Y)_i}{n}$$
+
+donde $Y$ son las etiquetas en one-hot. Devuelve \`(W2, b2, historial)\` con la pérdida de cada época. Como la conv está congelada, las features se calculan **una sola vez** y cada época son dos multiplicaciones de matrices: rápido incluso en el navegador. Así de eficiente es el transfer learning de verdad, por cierto.
+
+Objetivo: **accuracy en test $\geq 0.90$**. La solución de referencia llega a 1.00, así que hay margen. Y un dato para la posteridad: un modelo lineal sobre los píxeles crudos se queda en ~0.79 — la diferencia son las features convolucionales.`,
+    starter_code: `import numpy as np
+
+# ============================================================
+# BLOQUE 1 · dataset (de los ejercicios anteriores, ya resuelto)
+# ============================================================
+def make_pets(n_per_class=60, seed=7):
+    """Gatos (1) y perros (0) sintéticos: 16x16, float en [0, 1]."""
+    rng = np.random.default_rng(seed)
+    H = W = 16
+    yy, xx = np.mgrid[0:H, 0:W]
+    imgs, labels = [], []
+    for cls in (0, 1):
+        for _ in range(n_per_class):
+            img = np.zeros((H, W))
+            cx = (W - 1) / 2 + rng.uniform(-2, 2)
+            cy = (H - 1) / 2 + 1.0 + rng.uniform(-1.3, 1.3)
+            s = rng.uniform(0.85, 1.15)
+            r = 4.2 * s
+            cabeza = ((xx - cx) ** 2 + (yy - cy) ** 2) <= r ** 2
+            img[cabeza] = 1.0
+            for signo in (-1, 1):
+                ex = cx + signo * r * 0.8
+                if cls == 1:
+                    ey = cy - r * 0.45
+                    alto, ancho = 3.4 * s, 2.0 * s
+                    t = (ey - yy) / alto
+                    tri = (yy <= ey) & (yy >= ey - alto) & (np.abs(xx - ex) <= ancho * (1.0 - t))
+                    img[tri] = 1.0
+                else:
+                    ey = cy - r * 0.30
+                    oreja = ((xx - ex) ** 2 / (1.6 * s) ** 2
+                             + (yy - ey) ** 2 / (2.9 * s) ** 2) <= 1
+                    img[oreja] = 1.0
+            img = img * rng.uniform(0.6, 1.0)
+            img = img + rng.normal(0.0, 0.09, (H, W))
+            img = np.clip(img, 0.0, 1.0)
+            imgs.append(img)
+            labels.append(cls)
+    return np.array(imgs), np.array(labels, dtype=int)
+
+def split_train_test(X, y, test_ratio=0.2, seed=42):
+    """Split estratificado 80/20, mezclado y reproducible."""
+    rng = np.random.default_rng(seed)
+    idx_train, idx_test = [], []
+    for cls in np.unique(y):
+        idx = np.where(y == cls)[0].copy()
+        rng.shuffle(idx)
+        n_test = int(round(len(idx) * test_ratio))
+        idx_test.extend(idx[:n_test])
+        idx_train.extend(idx[n_test:])
+    idx_train = np.array(idx_train)
+    idx_test = np.array(idx_test)
+    rng.shuffle(idx_train)
+    rng.shuffle(idx_test)
+    return X[idx_train], X[idx_test], y[idx_train], y[idx_test]
+
+# ============================================================
+# BLOQUE 2 · la red (de los ejercicios anteriores, ya resuelta)
+# ============================================================
+def conv2d(img, kernel):
+    H, W = img.shape
+    k = kernel.shape[0]
+    Ho, Wo = H - k + 1, W - k + 1
+    out = np.zeros((Ho, Wo))
+    for u in range(k):
+        for v in range(k):
+            out += img[u:u + Ho, v:v + Wo] * kernel[u, v]
+    return out
+
+def max_pool2d(x, size=2, stride=2):
+    H, W = x.shape
+    Ho = (H - size) // stride + 1
+    Wo = (W - size) // stride + 1
+    out = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            out[i, j] = np.max(x[i * stride:i * stride + size, j * stride:j * stride + size])
+    return out
+
+def softmax(Z):
+    Z = Z - Z.max(axis=1, keepdims=True)
+    E = np.exp(Z)
+    return E / E.sum(axis=1, keepdims=True)
+
+# Pesos conv PREENTRENADOS y CONGELADOS (transfer learning: no se tocan)
+K_PRE = np.array([
+    [[-0.582732, -0.96122 , -0.130555],
+     [ 0.212956,  0.399228,  0.137924],
+     [-0.351721, -0.452611,  0.838434]],
+    [[ 2.409266,  0.256254,  0.219415],
+     [-1.514992,  0.831379,  0.470307],
+     [-1.498307, -1.111171, -0.721306]],
+    [[-0.317758, -0.327833, -0.822538],
+     [ 0.70584 , -0.29698 , -0.522749],
+     [ 0.496246,  1.057557, -1.133512]],
+    [[-0.128364, -0.490374, -0.086576],
+     [-0.644709,  0.009952, -0.018955],
+     [-0.152168, -0.523963, -0.198095]]])
+B_PRE = np.array([0.16525, 0.346522, 0.071384, -0.002053])
+
+def extraer_features(X):
+    """La parte CONGELADA de la red: conv + ReLU + maxpool + flatten.
+
+    Es tu forward del ejercicio anterior, parando antes de la capa densa.
+    Devuelve F: (N, 196) — las features de cada imagen.
+    """
+    features = []
+    for img in X:
+        mapas = []
+        for f in range(4):
+            relu = np.maximum(0.0, conv2d(img, K_PRE[f]) + B_PRE[f])
+            mapas.append(max_pool2d(relu))
+        features.append(np.concatenate([m.ravel() for m in mapas]))
+    return np.array(features)
+
+# ============================================================
+# BLOQUE 3 · TU TRABAJO: entrenar SOLO la cabeza densa
+# ============================================================
+def entrenar_cabeza(F, y, lr=0.5, epochs=300):
+    """Entrena la cabeza densa (196 -> 2) con softmax + cross-entropy.
+
+    F: (n, 196) features congeladas. y: (n,) etiquetas 0/1.
+    Devuelve (W2, b2, historial): pesos, sesgo y pérdida de cada época.
+
+    Recordatorio (batch completo):
+      Z = F @ W2 + b2     -> logits (n, 2)
+      P = softmax(Z)      -> probabilidades
+      L = -media(log P[etiqueta correcta])
+      dZ = (P - Y_onehot) / n
+      dW2 = F.T @ dZ,  db2 = dZ.sum(axis=0)
+    """
+    n, d = F.shape
+    rng = np.random.default_rng(0)
+    W2 = rng.normal(0.0, 0.1, size=(d, 2))
+    b2 = np.zeros(2)
+    Y = np.eye(2)[y]  # etiquetas en one-hot: (n, 2)
+    historial = []
+    # TODO: bucle de entrenamiento (forward de la cabeza, pérdida,
+    # gradientes y actualización de W2 y b2). Guarda la pérdida de cada época.
+    return W2, b2, historial
+
+# ---------------------------------------------------------------
+# Pipeline completo: datos -> features congeladas -> entrenamiento
+# ---------------------------------------------------------------
+X_full, y_full = make_pets(n_per_class=60, seed=7)
+X_train, X_test, y_train, y_test = split_train_test(X_full, y_full)
+F_train = extraer_features(X_train)   # (96, 196)
+F_test = extraer_features(X_test)     # (24, 196)
+
+W2, b2, historial = entrenar_cabeza(F_train, y_train, lr=0.5, epochs=300)
+
+pred_train = np.argmax(F_train @ W2 + b2, axis=1)
+pred_test = np.argmax(F_test @ W2 + b2, axis=1)
+print('accuracy train:', (pred_train == y_train).mean())
+print('accuracy test :', (pred_test == y_test).mean())
+`,
+    solution_code: `import numpy as np
+
+def make_pets(n_per_class=60, seed=7):
+    """Gatos (1) y perros (0) sintéticos: 16x16, float en [0, 1]."""
+    rng = np.random.default_rng(seed)
+    H = W = 16
+    yy, xx = np.mgrid[0:H, 0:W]
+    imgs, labels = [], []
+    for cls in (0, 1):
+        for _ in range(n_per_class):
+            img = np.zeros((H, W))
+            cx = (W - 1) / 2 + rng.uniform(-2, 2)
+            cy = (H - 1) / 2 + 1.0 + rng.uniform(-1.3, 1.3)
+            s = rng.uniform(0.85, 1.15)
+            r = 4.2 * s
+            cabeza = ((xx - cx) ** 2 + (yy - cy) ** 2) <= r ** 2
+            img[cabeza] = 1.0
+            for signo in (-1, 1):
+                ex = cx + signo * r * 0.8
+                if cls == 1:
+                    ey = cy - r * 0.45
+                    alto, ancho = 3.4 * s, 2.0 * s
+                    t = (ey - yy) / alto
+                    tri = (yy <= ey) & (yy >= ey - alto) & (np.abs(xx - ex) <= ancho * (1.0 - t))
+                    img[tri] = 1.0
+                else:
+                    ey = cy - r * 0.30
+                    oreja = ((xx - ex) ** 2 / (1.6 * s) ** 2
+                             + (yy - ey) ** 2 / (2.9 * s) ** 2) <= 1
+                    img[oreja] = 1.0
+            img = img * rng.uniform(0.6, 1.0)
+            img = img + rng.normal(0.0, 0.09, (H, W))
+            img = np.clip(img, 0.0, 1.0)
+            imgs.append(img)
+            labels.append(cls)
+    return np.array(imgs), np.array(labels, dtype=int)
+
+def split_train_test(X, y, test_ratio=0.2, seed=42):
+    """Split estratificado 80/20, mezclado y reproducible."""
+    rng = np.random.default_rng(seed)
+    idx_train, idx_test = [], []
+    for cls in np.unique(y):
+        idx = np.where(y == cls)[0].copy()
+        rng.shuffle(idx)
+        n_test = int(round(len(idx) * test_ratio))
+        idx_test.extend(idx[:n_test])
+        idx_train.extend(idx[n_test:])
+    idx_train = np.array(idx_train)
+    idx_test = np.array(idx_test)
+    rng.shuffle(idx_train)
+    rng.shuffle(idx_test)
+    return X[idx_train], X[idx_test], y[idx_train], y[idx_test]
+
+def conv2d(img, kernel):
+    H, W = img.shape
+    k = kernel.shape[0]
+    Ho, Wo = H - k + 1, W - k + 1
+    out = np.zeros((Ho, Wo))
+    for u in range(k):
+        for v in range(k):
+            out += img[u:u + Ho, v:v + Wo] * kernel[u, v]
+    return out
+
+def max_pool2d(x, size=2, stride=2):
+    H, W = x.shape
+    Ho = (H - size) // stride + 1
+    Wo = (W - size) // stride + 1
+    out = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            out[i, j] = np.max(x[i * stride:i * stride + size, j * stride:j * stride + size])
+    return out
+
+def softmax(Z):
+    Z = Z - Z.max(axis=1, keepdims=True)
+    E = np.exp(Z)
+    return E / E.sum(axis=1, keepdims=True)
+
+K_PRE = np.array([
+    [[-0.582732, -0.96122 , -0.130555],
+     [ 0.212956,  0.399228,  0.137924],
+     [-0.351721, -0.452611,  0.838434]],
+    [[ 2.409266,  0.256254,  0.219415],
+     [-1.514992,  0.831379,  0.470307],
+     [-1.498307, -1.111171, -0.721306]],
+    [[-0.317758, -0.327833, -0.822538],
+     [ 0.70584 , -0.29698 , -0.522749],
+     [ 0.496246,  1.057557, -1.133512]],
+    [[-0.128364, -0.490374, -0.086576],
+     [-0.644709,  0.009952, -0.018955],
+     [-0.152168, -0.523963, -0.198095]]])
+B_PRE = np.array([0.16525, 0.346522, 0.071384, -0.002053])
+
+def extraer_features(X):
+    features = []
+    for img in X:
+        mapas = []
+        for f in range(4):
+            relu = np.maximum(0.0, conv2d(img, K_PRE[f]) + B_PRE[f])
+            mapas.append(max_pool2d(relu))
+        features.append(np.concatenate([m.ravel() for m in mapas]))
+    return np.array(features)
+
+def entrenar_cabeza(F, y, lr=0.5, epochs=300):
+    """Entrena la cabeza densa (196 -> 2) con softmax + cross-entropy."""
+    n, d = F.shape
+    rng = np.random.default_rng(0)
+    W2 = rng.normal(0.0, 0.1, size=(d, 2))
+    b2 = np.zeros(2)
+    Y = np.eye(2)[y]  # one-hot
+    historial = []
+    for ep in range(epochs):
+        # forward de la cabeza
+        P = softmax(F @ W2 + b2)
+        # pérdida cross-entropy (para el historial)
+        loss = -np.log(P[np.arange(n), y] + 1e-12).mean()
+        historial.append(loss)
+        # backward y actualización
+        dZ = (P - Y) / n
+        W2 -= lr * (F.T @ dZ)
+        b2 -= lr * dZ.sum(axis=0)
+    return W2, b2, historial
+
+X_full, y_full = make_pets(n_per_class=60, seed=7)
+X_train, X_test, y_train, y_test = split_train_test(X_full, y_full)
+F_train = extraer_features(X_train)
+F_test = extraer_features(X_test)
+W2, b2, historial = entrenar_cabeza(F_train, y_train, lr=0.5, epochs=300)
+
+pred_train = np.argmax(F_train @ W2 + b2, axis=1)
+pred_test = np.argmax(F_test @ W2 + b2, axis=1)
+print('pérdida: época 0 =', round(float(historial[0]), 4),
+      ' última =', round(float(historial[-1]), 4))
+print('accuracy train:', (pred_train == y_train).mean())
+print('accuracy test :', (pred_test == y_test).mean())
+`,
+    test_code: `
+_acc_tr = (np.argmax(F_train @ W2 + b2, axis=1) == y_train).mean()
+_acc_te = (np.argmax(F_test @ W2 + b2, axis=1) == y_test).mean()
+
+check("Devuelve (W2, b2, historial) con las formas correctas",
+      lambda: W2.shape == (196, 2) and b2.shape == (2,) and len(historial) == 300,
+      msg="W2 es (196, 2), b2 es (2,) y el historial guarda una pérdida por época (300)")
+
+check("La pérdida disminuye con el entrenamiento",
+      lambda: historial[-1] < historial[0],
+      msg="Si la pérdida no baja, revisa el signo del gradiente: W2 -= lr * (F.T @ dZ), con dZ = (P - Y) / n")
+
+check("La pérdida converge por debajo de 0.2",
+      lambda: historial[-1] < 0.2,
+      msg="Con lr=0.5 y 300 épocas deberías bajar de 0.05; revisa que dZ use Y en one-hot y divida por n")
+
+check("Accuracy en train de al menos 0.95",
+      lambda: _acc_tr >= 0.95,
+      msg="La cabeza debe aprender las features de train casi a la perfección")
+
+check("Accuracy en test de al menos 0.90 (el objetivo del proyecto)",
+      lambda: _acc_te >= 0.90,
+      msg="Con la conv congelada y la cabeza bien entrenada se supera el 0.90; no entrenes sobre el test")
+
+check("La cabeza predice con probabilidades coherentes (softmax bien aplicada)",
+      lambda: bool((np.abs(softmax(F_test @ W2 + b2).sum(axis=1) - 1.0) < 1e-6).all()),
+      msg="Las probabilidades de test deben sumar 1 por fila; usa la softmax estable (resta el máximo)")
+`,
+    hints: [
+      '`Y = np.eye(2)[y]` convierte las etiquetas a one-hot; la pérdida de cada época es `-np.log(P[np.arange(n), y] + 1e-12).mean()`.',
+      'El gradiente combinado softmax + cross-entropy es `dZ = (P - Y) / n`; luego `W2 -= lr * (F.T @ dZ)` y `b2 -= lr * dZ.sum(axis=0)`.',
+      'Guarda la pérdida de CADA época en `historial` antes de actualizar los pesos.',
+    ],
+  },
+  {
+    id: 'cnn-pets-eval',
+    title: 'P4 · Evaluación profesional: más allá del accuracy',
+    difficulty: 'INTERMEDIO',
+    xp: 60,
+    statement: String.raw`Un 96 % de accuracy no te dice *cómo* falla tu modelo. En producción la pregunta nunca es "¿cuánto acierta?" sino "**¿qué errores comete y cuánto cuestan?**". Aquí el modelo se ha entrenado a propósito con pocas épocas para que quede algún error que analizar, y tú construirás el kit de evaluación profesional:
+
+1. **\`matriz_confusion(y_true, y_pred)\`**: matriz $2 \times 2$ donde la **fila** es la clase real y la **columna** la predicción. La diagonal son aciertos; fuera de ella están los fallos, y de qué tipo son.
+2. **\`precision_recall(cm)\`**: para cada clase $c$:
+
+$$\text{precision}_c = \frac{cm_{cc}}{\sum_t cm_{tc}} \quad \text{(de los que dije clase } c \text{, ¿cuántos lo eran?)}$$
+
+$$\text{recall}_c = \frac{cm_{cc}}{\sum_p cm_{cp}} \quad \text{(de los que eran clase } c \text{, ¿cuántos encontré?)}$$
+
+3. **\`indices_errores(y_true, y_pred)\`**: los índices exactos de los fallos dentro del test. Mirar a ojo los ejemplos mal clasificados es la herramienta de depuración más infravalorada del oficio: ahí descubres si tu modelo confunde "gato con orejas bajas" con perro, o si hay datos corruptos.
+
+Con nuestro modelo "perezoso" hay exactamente un error. ¿Es un gato que parece perro, o al revés? Tus funciones lo dirán.`,
+    starter_code: `import numpy as np
+
+# ============================================================
+# BLOQUE 1 · dataset (ya resuelto en ejercicios anteriores)
+# ============================================================
+def make_pets(n_per_class=60, seed=7):
+    """Gatos (1) y perros (0) sintéticos: 16x16, float en [0, 1]."""
+    rng = np.random.default_rng(seed)
+    H = W = 16
+    yy, xx = np.mgrid[0:H, 0:W]
+    imgs, labels = [], []
+    for cls in (0, 1):
+        for _ in range(n_per_class):
+            img = np.zeros((H, W))
+            cx = (W - 1) / 2 + rng.uniform(-2, 2)
+            cy = (H - 1) / 2 + 1.0 + rng.uniform(-1.3, 1.3)
+            s = rng.uniform(0.85, 1.15)
+            r = 4.2 * s
+            cabeza = ((xx - cx) ** 2 + (yy - cy) ** 2) <= r ** 2
+            img[cabeza] = 1.0
+            for signo in (-1, 1):
+                ex = cx + signo * r * 0.8
+                if cls == 1:
+                    ey = cy - r * 0.45
+                    alto, ancho = 3.4 * s, 2.0 * s
+                    t = (ey - yy) / alto
+                    tri = (yy <= ey) & (yy >= ey - alto) & (np.abs(xx - ex) <= ancho * (1.0 - t))
+                    img[tri] = 1.0
+                else:
+                    ey = cy - r * 0.30
+                    oreja = ((xx - ex) ** 2 / (1.6 * s) ** 2
+                             + (yy - ey) ** 2 / (2.9 * s) ** 2) <= 1
+                    img[oreja] = 1.0
+            img = img * rng.uniform(0.6, 1.0)
+            img = img + rng.normal(0.0, 0.09, (H, W))
+            img = np.clip(img, 0.0, 1.0)
+            imgs.append(img)
+            labels.append(cls)
+    return np.array(imgs), np.array(labels, dtype=int)
+
+def split_train_test(X, y, test_ratio=0.2, seed=42):
+    """Split estratificado 80/20, mezclado y reproducible."""
+    rng = np.random.default_rng(seed)
+    idx_train, idx_test = [], []
+    for cls in np.unique(y):
+        idx = np.where(y == cls)[0].copy()
+        rng.shuffle(idx)
+        n_test = int(round(len(idx) * test_ratio))
+        idx_test.extend(idx[:n_test])
+        idx_train.extend(idx[n_test:])
+    idx_train = np.array(idx_train)
+    idx_test = np.array(idx_test)
+    rng.shuffle(idx_train)
+    rng.shuffle(idx_test)
+    return X[idx_train], X[idx_test], y[idx_train], y[idx_test]
+
+# ============================================================
+# BLOQUE 2 · red + entrenamiento (ya resueltos)
+# ============================================================
+def conv2d(img, kernel):
+    H, W = img.shape
+    k = kernel.shape[0]
+    Ho, Wo = H - k + 1, W - k + 1
+    out = np.zeros((Ho, Wo))
+    for u in range(k):
+        for v in range(k):
+            out += img[u:u + Ho, v:v + Wo] * kernel[u, v]
+    return out
+
+def max_pool2d(x, size=2, stride=2):
+    H, W = x.shape
+    Ho = (H - size) // stride + 1
+    Wo = (W - size) // stride + 1
+    out = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            out[i, j] = np.max(x[i * stride:i * stride + size, j * stride:j * stride + size])
+    return out
+
+def softmax(Z):
+    Z = Z - Z.max(axis=1, keepdims=True)
+    E = np.exp(Z)
+    return E / E.sum(axis=1, keepdims=True)
+
+K_PRE = np.array([
+    [[-0.582732, -0.96122 , -0.130555],
+     [ 0.212956,  0.399228,  0.137924],
+     [-0.351721, -0.452611,  0.838434]],
+    [[ 2.409266,  0.256254,  0.219415],
+     [-1.514992,  0.831379,  0.470307],
+     [-1.498307, -1.111171, -0.721306]],
+    [[-0.317758, -0.327833, -0.822538],
+     [ 0.70584 , -0.29698 , -0.522749],
+     [ 0.496246,  1.057557, -1.133512]],
+    [[-0.128364, -0.490374, -0.086576],
+     [-0.644709,  0.009952, -0.018955],
+     [-0.152168, -0.523963, -0.198095]]])
+B_PRE = np.array([0.16525, 0.346522, 0.071384, -0.002053])
+
+def extraer_features(X):
+    features = []
+    for img in X:
+        mapas = []
+        for f in range(4):
+            relu = np.maximum(0.0, conv2d(img, K_PRE[f]) + B_PRE[f])
+            mapas.append(max_pool2d(relu))
+        features.append(np.concatenate([m.ravel() for m in mapas]))
+    return np.array(features)
+
+def entrenar_cabeza(F, y, lr=0.5, epochs=300):
+    n, d = F.shape
+    rng = np.random.default_rng(0)
+    W2 = rng.normal(0.0, 0.1, size=(d, 2))
+    b2 = np.zeros(2)
+    Y = np.eye(2)[y]
+    historial = []
+    for ep in range(epochs):
+        P = softmax(F @ W2 + b2)
+        historial.append(-np.log(P[np.arange(n), y] + 1e-12).mean())
+        dZ = (P - Y) / n
+        W2 -= lr * (F.T @ dZ)
+        b2 -= lr * dZ.sum(axis=0)
+    return W2, b2, historial
+
+# ---------------------------------------------------------------
+# Modelo entrenado a propósito con POCAS épocas, para que queden
+# errores que analizar (trabajarás con un modelo imperfecto, como en la vida real)
+# ---------------------------------------------------------------
+X_full, y_full = make_pets(n_per_class=60, seed=7)
+X_train, X_test, y_train, y_test = split_train_test(X_full, y_full)
+F_train = extraer_features(X_train)
+F_test = extraer_features(X_test)
+W2, b2, historial = entrenar_cabeza(F_train, y_train, lr=0.3, epochs=100)
+y_pred = np.argmax(F_test @ W2 + b2, axis=1)
+print('accuracy test:', (y_pred == y_test).mean())
+
+# ============================================================
+# BLOQUE 3 · TU TRABAJO: la evaluación profesional
+# ============================================================
+def matriz_confusion(y_true, y_pred):
+    """Matriz de confusión 2x2: FILAS = clase real, COLUMNAS = predicción.
+
+    cm[t, p] = número de ejemplos de clase t clasificados como p.
+    """
+    cm = np.zeros((2, 2), dtype=int)
+    # TODO: acumula cada ejemplo en su casilla
+    return cm
+
+def precision_recall(cm):
+    """Devuelve (precision, recall): dos arrays de longitud 2 (uno por clase).
+
+    precision[c] = cm[c, c] / (todos los predichos como c)    -> columna c
+    recall[c]    = cm[c, c] / (todos los que ERAN de clase c) -> fila c
+    """
+    precision = np.zeros(2)
+    recall = np.zeros(2)
+    # TODO: rellena ambos arrays a partir de cm
+    return precision, recall
+
+def indices_errores(y_true, y_pred):
+    """Índices (dentro del array de test) de los ejemplos mal clasificados."""
+    # TODO: una línea con np.where
+    return np.array([], dtype=int)
+
+# ---------------------------------------------------------------
+# Informe
+# ---------------------------------------------------------------
+cm = matriz_confusion(y_test, y_pred)
+precision, recall = precision_recall(cm)
+errores = indices_errores(y_test, y_pred)
+print('matriz de confusión (filas: real | columnas: predicción):')
+print(cm)
+print('precision  perro/gato:', np.round(precision, 3))
+print('recall     perro/gato:', np.round(recall, 3))
+print('errores en los índices de test:', errores)
+for i in errores:
+    print('  índice', i, ': era', 'gato' if y_test[i] == 1 else 'perro',
+          'y el modelo dijo', 'gato' if y_pred[i] == 1 else 'perro')
+`,
+    solution_code: `import numpy as np
+
+def make_pets(n_per_class=60, seed=7):
+    """Gatos (1) y perros (0) sintéticos: 16x16, float en [0, 1]."""
+    rng = np.random.default_rng(seed)
+    H = W = 16
+    yy, xx = np.mgrid[0:H, 0:W]
+    imgs, labels = [], []
+    for cls in (0, 1):
+        for _ in range(n_per_class):
+            img = np.zeros((H, W))
+            cx = (W - 1) / 2 + rng.uniform(-2, 2)
+            cy = (H - 1) / 2 + 1.0 + rng.uniform(-1.3, 1.3)
+            s = rng.uniform(0.85, 1.15)
+            r = 4.2 * s
+            cabeza = ((xx - cx) ** 2 + (yy - cy) ** 2) <= r ** 2
+            img[cabeza] = 1.0
+            for signo in (-1, 1):
+                ex = cx + signo * r * 0.8
+                if cls == 1:
+                    ey = cy - r * 0.45
+                    alto, ancho = 3.4 * s, 2.0 * s
+                    t = (ey - yy) / alto
+                    tri = (yy <= ey) & (yy >= ey - alto) & (np.abs(xx - ex) <= ancho * (1.0 - t))
+                    img[tri] = 1.0
+                else:
+                    ey = cy - r * 0.30
+                    oreja = ((xx - ex) ** 2 / (1.6 * s) ** 2
+                             + (yy - ey) ** 2 / (2.9 * s) ** 2) <= 1
+                    img[oreja] = 1.0
+            img = img * rng.uniform(0.6, 1.0)
+            img = img + rng.normal(0.0, 0.09, (H, W))
+            img = np.clip(img, 0.0, 1.0)
+            imgs.append(img)
+            labels.append(cls)
+    return np.array(imgs), np.array(labels, dtype=int)
+
+def split_train_test(X, y, test_ratio=0.2, seed=42):
+    rng = np.random.default_rng(seed)
+    idx_train, idx_test = [], []
+    for cls in np.unique(y):
+        idx = np.where(y == cls)[0].copy()
+        rng.shuffle(idx)
+        n_test = int(round(len(idx) * test_ratio))
+        idx_test.extend(idx[:n_test])
+        idx_train.extend(idx[n_test:])
+    idx_train = np.array(idx_train)
+    idx_test = np.array(idx_test)
+    rng.shuffle(idx_train)
+    rng.shuffle(idx_test)
+    return X[idx_train], X[idx_test], y[idx_train], y[idx_test]
+
+def conv2d(img, kernel):
+    H, W = img.shape
+    k = kernel.shape[0]
+    Ho, Wo = H - k + 1, W - k + 1
+    out = np.zeros((Ho, Wo))
+    for u in range(k):
+        for v in range(k):
+            out += img[u:u + Ho, v:v + Wo] * kernel[u, v]
+    return out
+
+def max_pool2d(x, size=2, stride=2):
+    H, W = x.shape
+    Ho = (H - size) // stride + 1
+    Wo = (W - size) // stride + 1
+    out = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            out[i, j] = np.max(x[i * stride:i * stride + size, j * stride:j * stride + size])
+    return out
+
+def softmax(Z):
+    Z = Z - Z.max(axis=1, keepdims=True)
+    E = np.exp(Z)
+    return E / E.sum(axis=1, keepdims=True)
+
+K_PRE = np.array([
+    [[-0.582732, -0.96122 , -0.130555],
+     [ 0.212956,  0.399228,  0.137924],
+     [-0.351721, -0.452611,  0.838434]],
+    [[ 2.409266,  0.256254,  0.219415],
+     [-1.514992,  0.831379,  0.470307],
+     [-1.498307, -1.111171, -0.721306]],
+    [[-0.317758, -0.327833, -0.822538],
+     [ 0.70584 , -0.29698 , -0.522749],
+     [ 0.496246,  1.057557, -1.133512]],
+    [[-0.128364, -0.490374, -0.086576],
+     [-0.644709,  0.009952, -0.018955],
+     [-0.152168, -0.523963, -0.198095]]])
+B_PRE = np.array([0.16525, 0.346522, 0.071384, -0.002053])
+
+def extraer_features(X):
+    features = []
+    for img in X:
+        mapas = []
+        for f in range(4):
+            relu = np.maximum(0.0, conv2d(img, K_PRE[f]) + B_PRE[f])
+            mapas.append(max_pool2d(relu))
+        features.append(np.concatenate([m.ravel() for m in mapas]))
+    return np.array(features)
+
+
+def entrenar_cabeza(F, y, lr=0.5, epochs=300):
+    n, d = F.shape
+    rng = np.random.default_rng(0)
+    W2 = rng.normal(0.0, 0.1, size=(d, 2))
+    b2 = np.zeros(2)
+    Y = np.eye(2)[y]
+    historial = []
+    for ep in range(epochs):
+        P = softmax(F @ W2 + b2)
+        historial.append(-np.log(P[np.arange(n), y] + 1e-12).mean())
+        dZ = (P - Y) / n
+        W2 -= lr * (F.T @ dZ)
+        b2 -= lr * dZ.sum(axis=0)
+    return W2, b2, historial
+
+X_full, y_full = make_pets(n_per_class=60, seed=7)
+X_train, X_test, y_train, y_test = split_train_test(X_full, y_full)
+F_train = extraer_features(X_train)
+F_test = extraer_features(X_test)
+W2, b2, historial = entrenar_cabeza(F_train, y_train, lr=0.3, epochs=100)
+y_pred = np.argmax(F_test @ W2 + b2, axis=1)
+print('accuracy test:', (y_pred == y_test).mean())
+
+def matriz_confusion(y_true, y_pred):
+    """Matriz de confusión 2x2: FILAS = clase real, COLUMNAS = predicción."""
+    cm = np.zeros((2, 2), dtype=int)
+    for t, p in zip(y_true, y_pred):
+        cm[t, p] += 1
+    return cm
+
+def precision_recall(cm):
+    """precision[c] = cm[c,c]/columna c; recall[c] = cm[c,c]/fila c."""
+    precision = np.zeros(2)
+    recall = np.zeros(2)
+    for c in range(2):
+        precision[c] = cm[c, c] / cm[:, c].sum() if cm[:, c].sum() > 0 else 0.0
+        recall[c] = cm[c, c] / cm[c, :].sum() if cm[c, :].sum() > 0 else 0.0
+    return precision, recall
+
+def indices_errores(y_true, y_pred):
+    """Índices (dentro del array de test) de los ejemplos mal clasificados."""
+    return np.where(y_pred != y_true)[0]
+
+cm = matriz_confusion(y_test, y_pred)
+precision, recall = precision_recall(cm)
+errores = indices_errores(y_test, y_pred)
+print('matriz de confusión (filas: real | columnas: predicción):')
+print(cm)
+print('precision  perro/gato:', np.round(precision, 3))
+print('recall     perro/gato:', np.round(recall, 3))
+print('errores en los índices de test:', errores)
+for i in errores:
+    print('  índice', i, ': era', 'gato' if y_test[i] == 1 else 'perro',
+          'y el modelo dijo', 'gato' if y_pred[i] == 1 else 'perro')
+`,
+    test_code: `
+def _ac(a, b, rtol=1e-7, atol=0.0):
+    npt.assert_allclose(a, b, rtol=rtol, atol=atol)
+    return True
+
+def _ref_cm(yt, yp):
+    m = np.zeros((2, 2), dtype=int)
+    for t, p in zip(yt, yp):
+        m[t, p] += 1
+    return m
+
+def _ref_pr(m):
+    prec = np.array([m[c, c] / m[:, c].sum() if m[:, c].sum() > 0 else 0.0 for c in range(2)])
+    rec = np.array([m[c, c] / m[c, :].sum() if m[c, :].sum() > 0 else 0.0 for c in range(2)])
+    return prec, rec
+
+_cm_u = matriz_confusion(y_test, y_pred)
+_cm_r = _ref_cm(y_test, y_pred)
+_prec_u, _rec_u = precision_recall(_cm_r)
+_prec_r, _rec_r = _ref_pr(_cm_r)
+_cm_sint = np.array([[5, 1], [2, 4]])
+_prec_s, _rec_s = _ref_pr(_cm_sint)
+_prec_us, _rec_us = precision_recall(_cm_sint)
+
+check("Matriz 2x2 que suma exactamente n_test",
+      lambda: _cm_u.shape == (2, 2) and int(_cm_u.sum()) == len(y_test),
+      msg="Cada ejemplo de test cae en exactamente una casilla: cm[real, predicción] += 1")
+
+check("Matriz de confusión correcta (filas = real, columnas = predicción)",
+      lambda: bool((_cm_u == _cm_r).all()),
+      msg="Recorre zip(y_true, y_pred) acumulando cm[t, p] += 1; ojo al orden de los índices")
+
+check("La diagonal son los aciertos",
+      lambda: int(np.trace(_cm_u)) == int((y_pred == y_test).sum()),
+      msg="cm[0,0] + cm[1,1] debe coincidir con el número de predicciones correctas")
+
+check("Precision y recall correctos sobre el test",
+      lambda: _ac(np.asarray(_prec_u, dtype=float), _prec_r, atol=1e-9)
+              and _ac(np.asarray(_rec_u, dtype=float), _rec_r, atol=1e-9),
+      msg="precision[c] = cm[c,c] / suma de la COLUMNA c; recall[c] = cm[c,c] / suma de la FILA c")
+
+check("Precision y recall también en una matriz cualquiera",
+      lambda: _ac(np.asarray(_prec_us, dtype=float), _prec_s, atol=1e-9)
+              and _ac(np.asarray(_rec_us, dtype=float), _rec_s, atol=1e-9),
+      msg="Con [[5,1],[2,4]]: precision = [5/7, 4/5], recall = [5/6, 4/6]; no vale hardcodear")
+
+check("Índices de errores correctos",
+      lambda: bool((np.sort(np.asarray(indices_errores(y_test, y_pred), dtype=int))
+                    == np.where(y_pred != y_test)[0]).all()),
+      msg="np.where(y_pred != y_test)[0] te da los índices de los fallos dentro del array de test")
+
+check("Coherencia: nº de errores = n_test - traza(cm)",
+      lambda: len(indices_errores(y_test, y_pred)) == len(y_test) - int(np.trace(_cm_u)),
+      msg="Los ejemplos fuera de la diagonal son exactamente los errores")
+`,
+    hints: [
+      'Recorre `zip(y_true, y_pred)` y haz `cm[t, p] += 1`: filas = clase real, columnas = predicción.',
+      '`precision[c]` divide por la suma de la columna c (`cm[:, c].sum()`); `recall[c]` por la suma de la fila c (`cm[c, :].sum()`).',
+      '`np.where(y_pred != y_test)[0]` devuelve directamente los índices de los fallos.',
+    ],
+  },
+]
