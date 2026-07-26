@@ -1,7 +1,8 @@
 /**
  * katex-content.tsx — Renderiza strings con segmentos KaTeX mezclados con texto.
  *
- * Soporta `$$...$$` (bloque) y `$...$` (inline) dentro de texto plano.
+ * Soporta `$$...$$` (bloque) y `$...$` (inline) dentro de texto plano,
+ * y `**negrita**` en los segmentos de texto (se renderiza como <strong>).
  * Uso: <TeX content="La recta es $y = wx + b$ y el coste $$J = \\frac{1}{n}\\sum...$$" />
  */
 
@@ -34,16 +35,31 @@ export function parseTeX(input: string): Segment[] {
   return segments
 }
 
+/** Renderiza un segmento de texto plano, convirtiendo `**negrita**` en <strong>. */
+function renderTextWithBold(text: string, keyPrefix: string): ReactNode {
+  const chunks = text.split(/(\*\*[^*]+\*\*)/g)
+  return chunks.map((chunk, k) => {
+    if (chunk.startsWith('**') && chunk.endsWith('**') && chunk.length > 4) {
+      return (
+        <strong key={`${keyPrefix}-b${k}`} className="font-semibold text-ink">
+          {chunk.slice(2, -2)}
+        </strong>
+      )
+    }
+    return <Fragment key={`${keyPrefix}-t${k}`}>{chunk}</Fragment>
+  })
+}
+
 export function TeX({ content, className }: { content: string; className?: string }) {
   const parts: ReactNode[] = parseTeX(content).map((seg, i) => {
     if (seg.kind === 'inline') return <InlineMath key={i} math={seg.value} />
     if (seg.kind === 'block') return <BlockMath key={i} math={seg.value} />
-    // Texto plano: respeta saltos de línea sencillos
+    // Texto plano: respeta saltos de línea sencillos y **negritas**
     return (
       <Fragment key={i}>
         {seg.value.split('\n').map((line, j, arr) => (
           <Fragment key={j}>
-            {line}
+            {renderTextWithBold(line, `${i}-${j}`)}
             {j < arr.length - 1 && <br />}
           </Fragment>
         ))}
