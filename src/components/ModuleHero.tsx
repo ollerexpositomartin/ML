@@ -38,7 +38,7 @@ export default function ModuleHero({
   color,
   className,
 }: {
-  level: 'N0' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6' | 'BOSS'
+  level: 'N0' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6' | 'N7' | 'N8' | 'N9' | 'N10' | 'BOSS'
   kicker: string
   title: string
   abstract: string
