@@ -500,6 +500,557 @@ check("Con f≈1 e i≈0 la memoria se conserva: C_t ≈ C_prev",
       'El estado de celda es `C = f * C_prev + i * C_tilde` (producto **elemento a elemento**, `*`, no `@`) y `h = o * np.tanh(C)`.',
     ],
   },
+  {
+    id: 'secuencias-sales-windows',
+    title: 'P1 · Ventanas, split temporal y normalización',
+    difficulty: 'BASICO',
+    xp: 50,
+    statement: [
+      'Trabajas como data scientist en una cadena de tiendas y te encargan predecir **las ventas de mañana** para planificar stock y personal. La función `make_sales()` (dada) genera dos años de ventas diarias realistas: tendencia creciente suave, estacionalidad semanal (el fin de semana se vende más), campaña de Navidad y ruido.',
+      '',
+      'El primer paso de cualquier pipeline de forecasting es convertir la serie en un **dataset supervisado**. Implementa tres piezas:',
+      '',
+      '- `make_windows(series, window)` — ventanas deslizantes: `X[i] = series[i:i+window]` (los 14 días previos) e `y[i] = series[i+window]` (el día siguiente).\n- `temporal_split(X, y, train_frac=0.8)` — los primeros ejemplos para train y los últimos para test, **sin barajar**. En series temporales un split aleatorio es trampa: el modelo vería el futuro para predecir el pasado.\n- `normalize_by_train(X_train, y_train, X_test, y_test)` — divide todo entre **la media de train** y devuelve `(X_train_n, y_train_n, X_test_n, y_test_n, scale)`. Si usaras la media de toda la serie cometerías *data leakage*: colarías información del futuro dentro del preprocesado.',
+      '',
+      'Estas dos reglas — split temporal y estadísticas calculadas solo con train — son las que separan un modelo de laboratorio de uno que sobrevive en producción.',
+    ].join('\n'),
+    starter_code: `import numpy as np
+
+def make_sales(seed=7):
+    """Ventas diarias de una tienda durante 2 años (730 días)."""
+    rng = np.random.default_rng(seed)
+    n = 730
+    t = np.arange(n)
+    base = 120.0
+    trend = 0.045 * t                      # sube ~33 unidades en 2 años
+    semana = np.array([0.0, -5.0, -8.0, -3.0, 5.0, 24.0, 14.0])
+    weekly = semana[t % 7]                 # el fin de semana vende más
+    christmas = np.zeros(n)
+    for year_start in (0, 365):
+        dec = np.arange(334, 365)          # diciembre
+        g = np.exp(-0.5 * ((np.arange(len(dec)) - 20.0) / 8.0) ** 2)
+        christmas[year_start + dec] = 45.0 * g
+    noise = rng.normal(0.0, 4.0, n)
+    return np.maximum(base + trend + weekly + christmas + noise, 5.0)
+
+def make_windows(series, window):
+    """
+    Dataset supervisado con ventanas deslizantes.
+    series: (n,) -> X: (n - window, window) con X[i] = series[i:i+window]
+                    y: (n - window,)    con y[i] = series[i+window]
+    """
+    # TODO: apila las ventanas con np.stack y construye y
+    return np.zeros((0, window)), np.zeros(0)
+
+def temporal_split(X, y, train_frac=0.8):
+    """
+    Split TEMPORAL (sin barajar): los primeros int(n * train_frac) ejemplos
+    son train, el resto test. Devuelve (X_train, y_train, X_test, y_test).
+    """
+    # TODO: un único corte en n_train
+    return X, y, X, y
+
+def normalize_by_train(X_train, y_train, X_test, y_test):
+    """
+    Divide TODOS los arrays entre la media de X_train.
+    Devuelve (X_train_n, y_train_n, X_test_n, y_test_n, scale).
+    Ojo con el data leakage: la media se calcula SOLO con train.
+    """
+    # TODO
+    return X_train, y_train, X_test, y_test, 1.0
+
+# Prueba rápida
+sales = make_sales()
+X, y = make_windows(sales, 14)
+Xtr, ytr, Xte, yte = temporal_split(X, y)
+Xtr_n, ytr_n, Xte_n, yte_n, scale = normalize_by_train(Xtr, ytr, Xte, yte)
+print(X.shape, Xtr.shape, Xte.shape, round(scale, 2))
+`,
+    solution_code: `import numpy as np
+
+def make_sales(seed=7):
+    """Ventas diarias de una tienda durante 2 años (730 días)."""
+    rng = np.random.default_rng(seed)
+    n = 730
+    t = np.arange(n)
+    base = 120.0
+    trend = 0.045 * t
+    semana = np.array([0.0, -5.0, -8.0, -3.0, 5.0, 24.0, 14.0])
+    weekly = semana[t % 7]
+    christmas = np.zeros(n)
+    for year_start in (0, 365):
+        dec = np.arange(334, 365)
+        g = np.exp(-0.5 * ((np.arange(len(dec)) - 20.0) / 8.0) ** 2)
+        christmas[year_start + dec] = 45.0 * g
+    noise = rng.normal(0.0, 4.0, n)
+    return np.maximum(base + trend + weekly + christmas + noise, 5.0)
+
+def make_windows(series, window):
+    series = np.asarray(series, dtype=float)
+    n = series.shape[0]
+    X = np.stack([series[i:i + window] for i in range(n - window)])
+    y = series[window:]
+    return X, y
+
+def temporal_split(X, y, train_frac=0.8):
+    n_train = int(X.shape[0] * train_frac)
+    return X[:n_train], y[:n_train], X[n_train:], y[n_train:]
+
+def normalize_by_train(X_train, y_train, X_test, y_test):
+    scale = float(np.mean(X_train))
+    return X_train / scale, y_train / scale, X_test / scale, y_test / scale, scale
+
+# Prueba rápida
+sales = make_sales()
+X, y = make_windows(sales, 14)
+Xtr, ytr, Xte, yte = temporal_split(X, y)
+Xtr_n, ytr_n, Xte_n, yte_n, scale = normalize_by_train(Xtr, ytr, Xte, yte)
+print(X.shape, Xtr.shape, Xte.shape, round(scale, 2))
+`,
+    test_code: `
+_sales = make_sales(7)
+_X, _y = make_windows(_sales, 14)
+check("Formas del dataset: X (n - window, window) e y (n - window,)",
+      lambda: _X.shape == (716, 14) and _y.shape == (716,),
+      msg=f"Se esperaba (716, 14) y (716,), llegaron {_X.shape} y {_y.shape}")
+check("X[i] son los 14 días previos e y[i] es el día siguiente",
+      lambda: np.allclose(_X[0], _sales[:14]) and np.isclose(_y[0], _sales[14])
+              and np.allclose(_X[100], _sales[100:114]) and np.isclose(_y[-1], _sales[-1]),
+      msg="X[i] debe ser series[i:i+window] e y[i] = series[i+window]")
+check("Las ventanas se desplazan de un día en un día",
+      lambda: np.allclose(_X[1, :-1], _X[0, 1:]),
+      msg="Ventanas deslizantes: X[i+1] es X[i] movida un día hacia el futuro")
+
+_Xtr, _ytr, _Xte, _yte = temporal_split(_X, _y)
+_ntr = int(716 * 0.8)
+check("El split respeta la proporción 80/20",
+      lambda: _Xtr.shape == (_ntr, 14) and _Xte.shape == (716 - _ntr, 14),
+      msg=f"Train debe tener {_ntr} ejemplos y test {716 - _ntr}")
+check("Es un split TEMPORAL: train son los primeros ejemplos y test los últimos",
+      lambda: np.allclose(_Xtr[-1], _X[_ntr - 1]) and np.allclose(_Xte[0], _X[_ntr]),
+      msg="En series temporales NO se baraja: el futuro no puede filtrarse al pasado")
+check("Ningún ejemplo de test es anterior a uno de train",
+      lambda: np.allclose(_ytr, _y[:_ntr]) and np.allclose(_yte, _y[_ntr:]),
+      msg="Train = prefijo temporal, test = sufijo temporal, sin mezclar")
+
+_Xtrn, _ytrn, _Xten, _yten, _scale = normalize_by_train(_Xtr, _ytr, _Xte, _yte)
+check("La escala es la media de train (y solo de train)",
+      lambda: np.isclose(_scale, _Xtr.mean()),
+      msg="La normalización debe usar únicamente la media del conjunto de train")
+check("Sin data leakage: la escala NO es la media de toda la serie",
+      lambda: abs(_scale - _X.mean()) > 3.0,
+      msg="Si usas la media global estás colando información del futuro en train")
+check("Tras normalizar, train tiene media ~1",
+      lambda: np.isclose(_Xtrn.mean(), 1.0, atol=1e-8),
+      msg="Al dividir entre la media de train, X_train normalizado debe tener media 1")
+check("El test se normaliza con la MISMA escala calculada en train",
+      lambda: np.allclose(_Xten, _Xte / _Xtr.mean()) and np.allclose(_yten, _yte / _Xtr.mean()),
+      msg="Test se divide entre la media de train, nunca entre su propia media")
+`,
+    hints: [
+      'Para `make_windows`, apila `[series[i:i+window] for i in range(n - window)]` con `np.stack`; los objetivos son simplemente `y = series[window:]`.',
+      'El split temporal es un único corte: `n_train = int(len(X) * train_frac)`; train es `[:n_train]` y test `[n_train:]`. Nada de barajar.',
+      'La escala es `float(X_train.mean())`; divide los cuatro arrays entre ella. Si el test se normalizara con su propia media, habría leakage.',
+    ],
+  },
+  {
+    id: 'secuencias-sales-rnn',
+    title: 'P2 · Entrena una RNN para forecasting',
+    difficulty: 'AVANZADO',
+    xp: 130,
+    statement: [
+      'El plato fuerte del proyecto: entrenar una **RNN mínima** que prediga las ventas de mañana a partir de los últimos 14 días. Los datos ya vienen preparados con el pipeline del ejercicio anterior (ventanas, split temporal, normalización por train):',
+      '',
+      '$$h_t = \\tanh(W_x x_t + W_h h_{t-1} + b), \\qquad \\hat{y} = W_y h_T + b_y$$',
+      '',
+      'Implementa `train_rnn(X_train, y_train, hidden=12, epochs=3000, lr=0.05, seed=0)` — descenso de gradiente con batch completo, pérdida MSE y **BPTT** a través de los 14 pasos — y `rnn_predict(model, X)` que devuelva un array `(N,)`. Notas de oficio:',
+      '',
+      '- Guarda **todos** los estados `hs` en el forward: los necesitas en el backward.\n- La derivada de $\\tanh$ es $1 - h^2$; el gradiente llega a $h_T$ desde la pérdida y viaja hacia atrás paso a paso acumulando en `dWx`, `dWh` y `db`.\n- **Gradient clipping** (recorta a $[-2, 2]$) evita que una época desastrosa arruine los pesos.',
+      '',
+      '**Objetivo profesional**: batir al *baseline naive* (predecir lo de ayer) en al menos un 20% de RMSE y lograr un MAPE ≤ 15% en test. Un modelo que no supera al baseline trivial no se despliega.',
+    ].join('\n'),
+    starter_code: `import numpy as np
+
+def make_sales(seed=7):
+    """Ventas diarias de una tienda durante 2 años (730 días)."""
+    rng = np.random.default_rng(seed)
+    n = 730
+    t = np.arange(n)
+    base = 120.0
+    trend = 0.045 * t
+    semana = np.array([0.0, -5.0, -8.0, -3.0, 5.0, 24.0, 14.0])
+    weekly = semana[t % 7]
+    christmas = np.zeros(n)
+    for year_start in (0, 365):
+        dec = np.arange(334, 365)
+        g = np.exp(-0.5 * ((np.arange(len(dec)) - 20.0) / 8.0) ** 2)
+        christmas[year_start + dec] = 45.0 * g
+    noise = rng.normal(0.0, 4.0, n)
+    return np.maximum(base + trend + weekly + christmas + noise, 5.0)
+
+# --- Datos: ventanas de 14 días, split temporal 80/20, normalización por train ---
+WINDOW = 14
+sales = make_sales()
+n = len(sales) - WINDOW
+X = np.stack([sales[i:i + WINDOW] for i in range(n)])
+y = sales[WINDOW:]
+n_train = int(n * 0.8)
+scale = X[:n_train].mean()                      # solo train: nada de leakage
+X_train = (X[:n_train] / scale)[:, :, None]     # (N, 14, 1)
+y_train = (y[:n_train] / scale)[:, None]        # (N, 1)
+X_test = (X[n_train:] / scale)[:, :, None]
+y_test = y[n_train:]                            # en unidades reales
+
+HIDDEN = 12
+
+def train_rnn(X_train, y_train, hidden=HIDDEN, epochs=3000, lr=0.05, seed=0):
+    """
+    RNN mínima: h_t = tanh(x_t @ Wx + h_{t-1} @ Wh + b);  y_hat = h_T @ Wy + by
+    Devuelve la tupla (Wx, Wh, b, Wy, by) tras entrenar con MSE + BPTT.
+    """
+    rng = np.random.default_rng(seed)
+    Wx = rng.normal(0, 0.5, size=(1, hidden))
+    Wh = rng.normal(0, 0.5, size=(hidden, hidden))
+    b = np.zeros(hidden)
+    Wy = rng.normal(0, 0.5, size=(hidden, 1))
+    by = np.zeros(1)
+    N, T, _ = X_train.shape
+    for ep in range(epochs):
+        # TODO forward: recorre los T pasos guardando hs de forma (T+1, N, hidden)
+        # TODO pérdida MSE entre y_hat = hs[T] @ Wy + by e y_train
+        # TODO backward: BPTT desde h_T hacia h_1 acumulando dWx, dWh, db, dWy, dby
+        # TODO gradient clipping a [-2, 2] y actualización SGD de los 5 parámetros
+        pass
+    return Wx, Wh, b, Wy, by
+
+def rnn_predict(model, X):
+    """Predicción (N,) en las mismas unidades (normalizadas) que X."""
+    Wx, Wh, b, Wy, by = model
+    # TODO: forward completo y devuelve (h_T @ Wy + by).ravel()
+    return np.zeros(X.shape[0])
+
+# Entrenamiento (puede tardar medio minuto en el navegador)
+model = train_rnn(X_train, y_train)
+pred_test = rnn_predict(model, X_test) * scale
+naive = X[n_train:, -1]                          # baseline: predecir lo de ayer
+rmse = lambda a, b: float(np.sqrt(np.mean((a - b) ** 2)))
+print("RMSE modelo:", round(rmse(y_test, pred_test), 2))
+print("RMSE naive :", round(rmse(y_test, naive), 2))
+`,
+    solution_code: `import numpy as np
+
+def make_sales(seed=7):
+    """Ventas diarias de una tienda durante 2 años (730 días)."""
+    rng = np.random.default_rng(seed)
+    n = 730
+    t = np.arange(n)
+    base = 120.0
+    trend = 0.045 * t
+    semana = np.array([0.0, -5.0, -8.0, -3.0, 5.0, 24.0, 14.0])
+    weekly = semana[t % 7]
+    christmas = np.zeros(n)
+    for year_start in (0, 365):
+        dec = np.arange(334, 365)
+        g = np.exp(-0.5 * ((np.arange(len(dec)) - 20.0) / 8.0) ** 2)
+        christmas[year_start + dec] = 45.0 * g
+    noise = rng.normal(0.0, 4.0, n)
+    return np.maximum(base + trend + weekly + christmas + noise, 5.0)
+
+# --- Datos: ventanas de 14 días, split temporal 80/20, normalización por train ---
+WINDOW = 14
+sales = make_sales()
+n = len(sales) - WINDOW
+X = np.stack([sales[i:i + WINDOW] for i in range(n)])
+y = sales[WINDOW:]
+n_train = int(n * 0.8)
+scale = X[:n_train].mean()                      # solo train: nada de leakage
+X_train = (X[:n_train] / scale)[:, :, None]     # (N, 14, 1)
+y_train = (y[:n_train] / scale)[:, None]        # (N, 1)
+X_test = (X[n_train:] / scale)[:, :, None]
+y_test = y[n_train:]                            # en unidades reales
+
+HIDDEN = 12
+
+def train_rnn(X_train, y_train, hidden=HIDDEN, epochs=3000, lr=0.05, seed=0):
+    rng = np.random.default_rng(seed)
+    Wx = rng.normal(0, 0.5, size=(1, hidden))
+    Wh = rng.normal(0, 0.5, size=(hidden, hidden))
+    b = np.zeros(hidden)
+    Wy = rng.normal(0, 0.5, size=(hidden, 1))
+    by = np.zeros(1)
+    N, T, _ = X_train.shape
+    for ep in range(epochs):
+        # forward: guarda todos los estados
+        hs = np.zeros((T + 1, N, hidden))
+        for t in range(T):
+            hs[t + 1] = np.tanh(X_train[:, t, :] @ Wx + hs[t] @ Wh + b)
+        y_hat = hs[T] @ Wy + by
+        err = y_hat - y_train
+        loss = float(np.mean(err ** 2))
+        # backward: BPTT desde h_T hacia h_1
+        dWx = np.zeros_like(Wx)
+        dWh = np.zeros_like(Wh)
+        db = np.zeros_like(b)
+        dWy = hs[T].T @ (2.0 * err / N)
+        dby = (2.0 * err / N).sum(axis=0)
+        dh = (2.0 * err / N) @ Wy.T
+        for t in range(T - 1, -1, -1):
+            dz = dh * (1.0 - hs[t + 1] ** 2)      # derivada de tanh
+            dWx += X_train[:, t, :].T @ dz
+            dWh += hs[t].T @ dz
+            db += dz.sum(axis=0)
+            dh = dz @ Wh.T
+        for g in (dWx, dWh, db, dWy, dby):
+            np.clip(g, -2.0, 2.0, out=g)          # gradient clipping
+        Wx -= lr * dWx
+        Wh -= lr * dWh
+        b -= lr * db
+        Wy -= lr * dWy
+        by -= lr * dby
+    return Wx, Wh, b, Wy, by
+
+def rnn_predict(model, X):
+    Wx, Wh, b, Wy, by = model
+    N, T, _ = X.shape
+    h = np.zeros((N, Wx.shape[1]))
+    for t in range(T):
+        h = np.tanh(X[:, t, :] @ Wx + h @ Wh + b)
+    return (h @ Wy + by).ravel()
+
+# Entrenamiento (tarda unos segundos)
+model = train_rnn(X_train, y_train)
+pred_test = rnn_predict(model, X_test) * scale
+naive = X[n_train:, -1]                          # baseline: predecir lo de ayer
+rmse = lambda a, b: float(np.sqrt(np.mean((a - b) ** 2)))
+print("RMSE modelo:", round(rmse(y_test, pred_test), 2))
+print("RMSE naive :", round(rmse(y_test, naive), 2))
+`,
+    test_code: `
+_pred = np.asarray(rnn_predict(model, X_test), dtype=float) * scale
+check("rnn_predict devuelve una predicción por ejemplo de test, finita",
+      lambda: _pred.shape == (y_test.shape[0],) and np.all(np.isfinite(_pred)),
+      msg="Debe devolver un array (N,) con una predicción por ventana de test")
+
+_naive = X[n_train:, -1]
+_rmse = lambda a, b: float(np.sqrt(np.mean((a - b) ** 2)))
+_rmse_model = _rmse(y_test, _pred)
+_rmse_naive = _rmse(y_test, _naive)
+_mape = float(np.mean(np.abs((y_test - _pred) / y_test)) * 100.0)
+
+check("El modelo bate al baseline naive (predecir lo de ayer) en al menos un 20% de RMSE",
+      lambda: _rmse_model <= 0.80 * _rmse_naive,
+      msg=f"RMSE modelo {_rmse_model:.2f} vs naive {_rmse_naive:.2f}: falta aprender la estacionalidad semanal (revisa BPTT, épocas y lr)")
+check("MAPE en test ≤ 15% (error porcentual medio)",
+      lambda: _mape <= 15.0,
+      msg=f"MAPE {_mape:.2f}%: el error relativo es demasiado alto")
+check("El modelo aprende de verdad: supera a predecir siempre la media de train",
+      lambda: _rmse_model < _rmse(y_test, np.full_like(y_test, y[:n_train].mean())),
+      msg="Peor que predecir la media: el entrenamiento no está convergiendo")
+check("Las predicciones son positivas y de magnitud realista (50-250 unidades)",
+      lambda: np.all(_pred > 50.0) and np.all(_pred < 250.0),
+      msg="Predicciones fuera de rango: ¿desnormalizaste multiplicando por scale?")
+`,
+    hints: [
+      'Forward: `hs = np.zeros((T+1, N, hidden))` y en el bucle `hs[t+1] = np.tanh(X_train[:, t, :] @ Wx + hs[t] @ Wh + b)`. La predicción es `hs[T] @ Wy + by`.',
+      'Backward: con `err = y_hat - y_train`, el gradiente que llega a $h_T$ es `(2*err/N) @ Wy.T`; en cada paso `dz = dh * (1 - hs[t+1]**2)`, acumula `dWx += X_train[:,t,:].T @ dz`, `dWh += hs[t].T @ dz`, `db += dz.sum(axis=0)` y propaga `dh = dz @ Wh.T`.',
+      'Recorta todos los gradientes con `np.clip(g, -2, 2, out=g)` antes de restar `lr * g`. Con 3000 épocas y lr 0.05 deberías bajar de RMSE 8 frente a ~11.6 del naive.',
+    ],
+  },
+  {
+    id: 'secuencias-sales-horizon',
+    title: 'P3 · Horizonte múltiple recursivo',
+    difficulty: 'INTERMEDIO',
+    xp: 60,
+    statement: [
+      'Predecir un día es útil; predecir **una semana entera** es lo que necesita el departamento de compras. La estrategia estándar es la **predicción recursiva**: la predicción de mañana se usa como entrada para predecir pasado mañana, y así sucesivamente. El precio: los errores se acumulan y el error crece con el horizonte.',
+      '',
+      'Te damos un modelo ya ajustado — `predict_next`, una regresión lineal sobre la ventana por mínimos cuadrados. Implementa:',
+      '',
+      '- `recursive_forecast(history_n, horizon, predict_fn)` — devuelve un array `(horizon,)` donde cada predicción se **realimenta** al historial antes de predecir el siguiente día.\n- `seasonal_forecast(history_n, horizon)` — el *baseline estacional semanal*: para cada día futuro, el valor de hace 7 días (`history[-7:][:horizon]`).',
+      '',
+      'El test evalúa ambos sobre el conjunto de test y comprueba la lección profesional: el modelo gana al baseline estacional **en horizonte corto** (días 1–3), pero su error **se degrada con el horizonte** (el día 7 es peor que el día 1). Medir el error *por horizonte* — no solo global — es la práctica estándar en forecasting real.',
+    ].join('\n'),
+    starter_code: `import numpy as np
+
+def make_sales(seed=7):
+    """Ventas diarias de una tienda durante 2 años (730 días)."""
+    rng = np.random.default_rng(seed)
+    n = 730
+    t = np.arange(n)
+    base = 120.0
+    trend = 0.045 * t
+    semana = np.array([0.0, -5.0, -8.0, -3.0, 5.0, 24.0, 14.0])
+    weekly = semana[t % 7]
+    christmas = np.zeros(n)
+    for year_start in (0, 365):
+        dec = np.arange(334, 365)
+        g = np.exp(-0.5 * ((np.arange(len(dec)) - 20.0) / 8.0) ** 2)
+        christmas[year_start + dec] = 45.0 * g
+    noise = rng.normal(0.0, 4.0, n)
+    return np.maximum(base + trend + weekly + christmas + noise, 5.0)
+
+# --- Datos: ventanas de 14 días, split temporal, normalización por train ---
+WINDOW = 14
+sales = make_sales()
+n = len(sales) - WINDOW
+X = np.stack([sales[i:i + WINDOW] for i in range(n)])
+y = sales[WINDOW:]
+n_train = int(n * 0.8)
+scale = X[:n_train].mean()
+X_train_n = X[:n_train] / scale
+y_train_n = y[:n_train] / scale
+X_test = X[n_train:]
+y_test = y[n_train:]
+
+# --- Modelo dado: regresión lineal sobre la ventana (mínimos cuadrados) ---
+_phi = np.concatenate([X_train_n, np.ones((X_train_n.shape[0], 1))], axis=1)
+_coef = np.linalg.lstsq(_phi, y_train_n, rcond=None)[0]
+
+def predict_next(window_n):
+    """Predice el día siguiente (normalizado) dada una ventana de 14 días."""
+    return float(np.asarray(window_n, dtype=float) @ _coef[:-1] + _coef[-1])
+
+def recursive_forecast(history_n, horizon, predict_fn):
+    """
+    Predice los próximos "horizon" días de forma RECURSIVA: cada predicción
+    se añade al historial y se usa como entrada de la siguiente.
+    history_n: ventana inicial (14,) normalizada.
+    Devuelve un array (horizon,) en unidades normalizadas.
+    """
+    # TODO: bucle que predice, añade al historial y repite
+    return np.zeros(horizon)
+
+def seasonal_forecast(history_n, horizon):
+    """
+    Baseline estacional semanal: para el día futuro i, el valor de hace
+    7 días. Con horizon <= 7 basta una rebanada del historial.
+    """
+    # TODO
+    return np.zeros(horizon)
+
+# Prueba rápida
+h0 = X_test[0] / scale
+print("modelo    :", np.round(recursive_forecast(h0, 7, predict_next), 3))
+print("estacional:", np.round(seasonal_forecast(h0, 7), 3))
+`,
+    solution_code: `import numpy as np
+
+def make_sales(seed=7):
+    """Ventas diarias de una tienda durante 2 años (730 días)."""
+    rng = np.random.default_rng(seed)
+    n = 730
+    t = np.arange(n)
+    base = 120.0
+    trend = 0.045 * t
+    semana = np.array([0.0, -5.0, -8.0, -3.0, 5.0, 24.0, 14.0])
+    weekly = semana[t % 7]
+    christmas = np.zeros(n)
+    for year_start in (0, 365):
+        dec = np.arange(334, 365)
+        g = np.exp(-0.5 * ((np.arange(len(dec)) - 20.0) / 8.0) ** 2)
+        christmas[year_start + dec] = 45.0 * g
+    noise = rng.normal(0.0, 4.0, n)
+    return np.maximum(base + trend + weekly + christmas + noise, 5.0)
+
+# --- Datos: ventanas de 14 días, split temporal, normalización por train ---
+WINDOW = 14
+sales = make_sales()
+n = len(sales) - WINDOW
+X = np.stack([sales[i:i + WINDOW] for i in range(n)])
+y = sales[WINDOW:]
+n_train = int(n * 0.8)
+scale = X[:n_train].mean()
+X_train_n = X[:n_train] / scale
+y_train_n = y[:n_train] / scale
+X_test = X[n_train:]
+y_test = y[n_train:]
+
+# --- Modelo dado: regresión lineal sobre la ventana (mínimos cuadrados) ---
+_phi = np.concatenate([X_train_n, np.ones((X_train_n.shape[0], 1))], axis=1)
+_coef = np.linalg.lstsq(_phi, y_train_n, rcond=None)[0]
+
+def predict_next(window_n):
+    """Predice el día siguiente (normalizado) dada una ventana de 14 días."""
+    return float(np.asarray(window_n, dtype=float) @ _coef[:-1] + _coef[-1])
+
+def recursive_forecast(history_n, horizon, predict_fn):
+    history = list(np.asarray(history_n, dtype=float))
+    out = []
+    for _ in range(horizon):
+        p = predict_fn(np.array(history[-WINDOW:]))
+        out.append(p)
+        history.append(p)
+    return np.array(out)
+
+def seasonal_forecast(history_n, horizon):
+    history = np.asarray(history_n, dtype=float)
+    return history[-7:][:horizon].copy()
+
+# Prueba rápida
+h0 = X_test[0] / scale
+print("modelo    :", np.round(recursive_forecast(h0, 7, predict_next), 3))
+print("estacional:", np.round(seasonal_forecast(h0, 7), 3))
+`,
+    test_code: `
+# corrección del bucle recursivo con un predictor ficticio y determinista
+_fake = lambda w: 0.5 * w[-1] + 1.0
+_hist = np.arange(1.0, 15.0)
+_ref = []
+_h = list(_hist)
+for _ in range(7):
+    _p = _fake(np.array(_h[-14:]))
+    _ref.append(_p)
+    _h.append(_p)
+_fc = recursive_forecast(_hist, 7, _fake)
+check("recursive_forecast devuelve un array (horizon,)",
+      lambda: np.asarray(_fc).shape == (7,),
+      msg=f"Se esperaba forma (7,), llegó {np.asarray(_fc).shape}")
+check("Cada predicción se realimenta al historial (coincide con la referencia)",
+      lambda: np.allclose(_fc, np.array(_ref), atol=1e-10),
+      msg="Tras predecir, añade la predicción al historial antes del siguiente paso")
+check("También funciona con horizonte 1",
+      lambda: np.allclose(recursive_forecast(_hist, 1, _fake), np.array([_ref[0]]), atol=1e-10),
+      msg="Con horizon=1 debe devolver un array con una única predicción")
+
+_seas = seasonal_forecast(np.arange(1.0, 15.0), 7)
+check("El baseline estacional repite exactamente la última semana",
+      lambda: np.allclose(_seas, np.arange(8.0, 15.0)),
+      msg="Para un horizonte de 7 días, el baseline son los últimos 7 valores del historial")
+check("Funciona con horizontes menores que 7 (mismo día de la semana pasada)",
+      lambda: np.allclose(seasonal_forecast(np.arange(1.0, 15.0), 3), np.arange(8.0, 11.0)),
+      msg="El día futuro i corresponde al valor de hace 7 días: history[-7:][:horizon]")
+
+# evaluación real por horizonte sobre el conjunto de test
+_H = 7
+_e_model = [[] for _ in range(_H)]
+_e_seas = [[] for _ in range(_H)]
+for _i in range(len(y_test) - _H):
+    _hist_i = X_test[_i] / scale
+    _fut = y_test[_i:_i + _H]
+    _fm = recursive_forecast(_hist_i, _H, predict_next) * scale
+    _fs = seasonal_forecast(_hist_i, _H) * scale
+    for _hh in range(_H):
+        _e_model[_hh].append((_fm[_hh] - _fut[_hh]) ** 2)
+        _e_seas[_hh].append((_fs[_hh] - _fut[_hh]) ** 2)
+_rm = [float(np.sqrt(np.mean(e))) for e in _e_model]
+_rs = [float(np.sqrt(np.mean(e))) for e in _e_seas]
+
+check("A un día vista, el modelo bate al baseline estacional semanal",
+      lambda: _rm[0] < 0.95 * _rs[0],
+      msg=f"RMSE día 1: modelo {_rm[0]:.2f} vs estacional {_rs[0]:.2f}")
+check("El error se degrada con el horizonte: el día 7 es peor que el día 1",
+      lambda: _rm[6] > _rm[0],
+      msg=f"RMSE día 1 {_rm[0]:.2f} vs día 7 {_rm[6]:.2f}: al realimentar predicciones, los errores se acumulan")
+check("En horizonte corto (días 1-3) el modelo gana al estacional de media",
+      lambda: float(np.mean(_rm[:3])) < float(np.mean(_rs[:3])),
+      msg=f"Media días 1-3: modelo {np.mean(_rm[:3]):.2f} vs estacional {np.mean(_rs[:3]):.2f}")
+`,
+    hints: [
+      'En `recursive_forecast`, convierte el historial a lista, predice con `predict_fn(np.array(history[-14:]))`, añade la predicción a la lista y repite.',
+      'El baseline estacional es una rebanada: `history[-7:][:horizon]` — para el día futuro $i$ usas el valor de hace 7 días.',
+      'Para evaluar por horizonte, acumula el error cuadrático de cada día (1..7) por separado sobre todas las ventanas de test y saca el RMSE de cada columna.',
+    ],
+  },
 ]
 
 registerExercises(SECUENCIAS_EXERCISES)
