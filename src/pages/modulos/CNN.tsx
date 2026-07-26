@@ -1,5 +1,5 @@
 /**
- * Página · CNN — /modulos/cnn (N4)
+ * Página · CNN — /modulos/cnn (N3)
  * Convolución hands-on → pooling → kernels sobre foto real → LeNet…ResNet → campo receptivo.
  */
 
@@ -14,7 +14,7 @@ import ExerciseCard from '@/components/ExerciseCard'
 import QuizCard from '@/components/QuizCard'
 import { TeXParagraphs } from '@/lib/katex-content'
 import { getExercise, registerExercises } from '@/lib/exercises'
-import { CNN_EXERCISES } from '@/data/exercises/cnn'
+import { CNN_EXERCISES, CNN_PETS_EXERCISES } from '@/data/exercises/cnn'
 import ConvolucionDemo from '@/components/cnn/ConvolucionDemo'
 import PoolingDemo from '@/components/cnn/PoolingDemo'
 import FotoKernelsDemo from '@/components/cnn/FotoKernelsDemo'
@@ -22,17 +22,19 @@ import ResnetDemo from '@/components/cnn/ResnetDemo'
 import CampoReceptivoDemo from '@/components/cnn/CampoReceptivoDemo'
 
 registerExercises(CNN_EXERCISES)
+registerExercises(CNN_PETS_EXERCISES)
 
 const SECTIONS = [
-  { id: 'idea', label: '4.A La idea sin fórmulas' },
-  { id: 'repaso', label: '4.B Repaso exprés' },
-  { id: 'glosario', label: '4.C Glosario de símbolos' },
-  { id: 'convolucion', label: '4.1 Convolución' },
-  { id: 'pooling', label: '4.2 Pooling' },
-  { id: 'kernels', label: '4.3 Kernels reales' },
-  { id: 'arquitecturas', label: '4.4 LeNet → ResNet' },
-  { id: 'receptivo', label: '4.5 Campo receptivo' },
-  { id: 'ejercicios', label: '4.6 Ejercicios' },
+  { id: 'idea', label: '3.A La idea sin fórmulas' },
+  { id: 'repaso', label: '3.B Repaso exprés' },
+  { id: 'glosario', label: '3.C Glosario de símbolos' },
+  { id: 'convolucion', label: '3.1 Convolución' },
+  { id: 'pooling', label: '3.2 Pooling' },
+  { id: 'kernels', label: '3.3 Kernels reales' },
+  { id: 'arquitecturas', label: '3.4 LeNet → ResNet' },
+  { id: 'receptivo', label: '3.5 Campo receptivo' },
+  { id: 'ejercicios', label: '3.6 Ejercicios' },
+  { id: 'proyecto', label: '3.7 Proyecto: gatos vs perros' },
 ]
 
 const ARCHS = [
@@ -132,11 +134,11 @@ export default function CNN() {
   return (
     <>
       <ModuleHero
-        level="N4"
-        kicker="// NIVEL 4 · VISIÓN POR COMPUTADOR"
+        level="N3"
+        kicker="// NIVEL 3 · VISIÓN POR COMPUTADOR"
         title="CNN: aprender a ver, un píxel a la vez"
         abstract="Una imagen no es un vector: tiene estructura espacial. La convolución la explota con kernels que detectan bordes, texturas y formas. Construirás la operación a mano y recorrerás 25 años de arquitecturas hasta ResNet."
-        meta={{ duration: '≈ 4 h', demos: 6, exercises: 6, xp: 540 }}
+        meta={{ duration: '≈ 5 h', demos: 6, exercises: 10, xp: 860 }}
         art="/art-cnn.png"
         color="#8B5CF6"
       />
@@ -147,7 +149,7 @@ export default function CNN() {
         <div className="min-w-0 max-w-[860px] flex-1 space-y-28">
           {/* S0a · La idea sin fórmulas */}
           <section id="idea">
-            <SectionHead kicker="// 4.A · antes de empezar" title="La idea sin fórmulas" />
+            <SectionHead kicker="// 3.A · antes de empezar" title="La idea sin fórmulas" />
             <Prose content={String.raw`Para una red, una foto no es más que una tabla gigante de números (un número por píxel y por color). El problema es que la red del módulo anterior no sabe de vecindades: para ella, dos píxeles que están juntos son tan distintos como dos en esquinas opuestas.
 
 La convolución resuelve esto con una **lupa**: una plantilla pequeña (por ejemplo 3×3) que recorre la imagen de izquierda a derecha y de arriba abajo, como un doble bucle sobre la tabla. En cada posición se pregunta: «¿cuánto se parece este trocito a mi patrón?». Donde el parecido es alto, enciende una luz en una nueva tabla de salida. Una lupa puede especializarse en bordes verticales, otra en texturas rugosas, otra en manchas rojas.
@@ -157,7 +159,7 @@ Lo potente viene al apilar capas: la segunda capa pone lupas sobre el resultado 
 
           {/* S0b · Repaso exprés */}
           <section id="repaso">
-            <SectionHead kicker="// 4.B · prerrequisitos en 1 minuto" title="Repaso exprés" />
+            <SectionHead kicker="// 3.B · prerrequisitos en 1 minuto" title="Repaso exprés" />
             <Prose content={String.raw`Cuatro ideas básicas y un módulo que conviene tener fresco. Pulsa el enlace si algo necesita repaso.`} />
             <Repaso items={[
               { q: '¿Qué es una matriz?', d: 'Una tabla de números. Una imagen en gris ES una matriz; a color, tres matrices apiladas.', to: '/modulos/fundamentos', toLabel: 'repásalo en Fundamentos' },
@@ -170,7 +172,7 @@ Lo potente viene al apilar capas: la segunda capa pone lupas sobre el resultado 
 
           {/* S0c · Glosario */}
           <section id="glosario">
-            <SectionHead kicker="// 4.C · diccionario del módulo" title="Glosario de símbolos" />
+            <SectionHead kicker="// 3.C · diccionario del módulo" title="Glosario de símbolos" />
             <Prose content={String.raw`Los símbolos que aparecerán en esta página, traducidos en una línea.`} />
             <Glosario items={[
               [String.raw`K`, 'kernel: la lupa o plantilla que recorre la imagen (sus números se aprenden)'],
@@ -188,7 +190,7 @@ Lo potente viene al apilar capas: la segunda capa pone lupas sobre el resultado 
 
           {/* S1 · Convolución */}
           <section id="convolucion">
-            <SectionHead kicker="// 4.1 · la operación" title="De píxeles a patrones" />
+            <SectionHead kicker="// 3.1 · la operación" title="De píxeles a patrones" />
             <Prose content={String.raw`Una imagen es un tensor $H \times W \times C$, no un vector. Aplanarla para dársela a un MLP comete dos crímenes: destruye la geometría (dos píxeles vecinos son tan importantes como dos lejanos) y dispara los parámetros (una foto de 224×224×3 → millones de pesos solo en la primera capa). Además, un MLP no sabe que un gato desplazado 10 píxeles sigue siendo el mismo gato.
 
 La convolución lo resuelve con una idea humilde: una pequeña ventana (kernel) que recorre la imagen calculando un producto escalar en cada posición. El mismo kernel se reutiliza en todas las posiciones — **weight sharing** —, lo que da dos superpoderes: poquísimos parámetros y **equivariancia a traslaciones** (si el patrón se mueve, el mapa de salida se mueve con él).`} />
@@ -215,7 +217,7 @@ La convolución lo resuelve con una idea humilde: una pequeña ventana (kernel) 
 
           {/* S2 · Pooling */}
           <section id="pooling">
-            <SectionHead kicker="// 4.2 · menos es más" title="Pooling y downsampling" />
+            <SectionHead kicker="// 3.2 · menos es más" title="Pooling y downsampling" />
             <Prose content={String.raw`Una vez detectado un borde, ¿importa su posición exacta al píxel? No: importa que está por ahí. El pooling resume cada ventana del mapa en un solo número: **max-pool** conserva la activación más fuerte (invariancia local y nada de desenfoque), **avg-pool** promedia (suaviza).
 
 Reduce la resolución, lo que abarata el cómputo y hace crecer el campo receptivo de las capas siguientes. Nota moderna: muchas arquitecturas recientes reemplazan el pooling por **convoluciones con stride 2**, que aprenden su propio downsampling en vez de imponerlo.`} />
@@ -224,7 +226,7 @@ Reduce la resolución, lo que abarata el cómputo y hace crecer el campo recepti
 
           {/* S3 · Kernels reales */}
           <section id="kernels">
-            <SectionHead kicker="// 4.3 · sobre una foto real" title="Kernels artesanales" />
+            <SectionHead kicker="// 3.3 · sobre una foto real" title="Kernels artesanales" />
             <Prose content={String.raw`Antes de aprenderlos, los kernels se diseñaban a mano. Sobel detecta bordes verticales u horizontales (una derivada discreta), el Laplaciano responde a cambios en todas direcciones, el desenfoque gaussiano suaviza y el enfoque realza el detalle restando una versión difusa.
 
 Aquí está el dato que cambió la historia: **las CNN aprenden solas kernels muy parecidos a estos**. Las primeras capas de AlexNet convergieron a detectores de bordes y colores orientados sin que nadie se los programara. La demo aplica los clásicos a una foto real.`} />
@@ -259,7 +261,7 @@ Aquí está el dato que cambió la historia: **las CNN aprenden solas kernels mu
 
           {/* S4 · Arquitecturas */}
           <section id="arquitecturas">
-            <SectionHead kicker="// 4.4 · 25 años en 5 hitos" title="Arquitecturas: la línea evolutiva" />
+            <SectionHead kicker="// 3.4 · 25 años en 5 hitos" title="Arquitecturas: la línea evolutiva" />
             <Prose content={String.raw`De 60 mil parámetros para leer cheques a redes de 152 capas que superan al humano en ImageNet. Cada salto resolvió un cuello de botella distinto: datos, cómputo, profundidad, y finalmente el propio gradiente.`} />
             <div className="-mx-4 overflow-x-auto px-4 pb-2">
               <div className="flex gap-4" style={{ width: 'max-content' }}>
@@ -314,7 +316,7 @@ Aquí está el dato que cambió la historia: **las CNN aprenden solas kernels mu
 
           {/* S5 · Campo receptivo */}
           <section id="receptivo">
-            <SectionHead kicker="// 4.5 · cuánto ve cada neurona" title="Campo receptivo y augmentation" />
+            <SectionHead kicker="// 3.5 · cuánto ve cada neurona" title="Campo receptivo y augmentation" />
             <Prose content={String.raw`El **campo receptivo** de una neurona es la región de la imagen original que puede influir en su salida. Con una capa 3×3 ves 3×3 píxeles; con dos, 5×5; con tres, 7×7 — el RF crece linealmente con la profundidad (y mucho más rápido con stride).
 
 Aquí está la cuenta que hizo famosa a VGG: tres capas 3×3 ven lo mismo que una 7×7, pero con 27 pesos en vez de 49 (por canal) y con tres no-linealidades en vez de una. Más expresividad, menos parámetros. Y cuando los datos escasean, la **data augmentation** — flips, crops, jitter de color — multiplica el dataset gratis enseñando invariancias al modelo.`} />
@@ -323,7 +325,7 @@ Aquí está la cuenta que hizo famosa a VGG: tres capas 3×3 ven lo mismo que un
 
           {/* S6 · Ejercicios */}
           <section id="ejercicios">
-            <SectionHead kicker="// 4.6 · demuestra lo aprendido" title="Ejercicios autocorregidos" />
+            <SectionHead kicker="// 3.6 · demuestra lo aprendido" title="Ejercicios autocorregidos" />
             <Prose content={String.raw`Construirás la convolución con tus manos: primero 2D de un canal, luego pooling, el cálculo de dimensiones (con trampas de floor incluidas) y el jefe del nivel — una **capa convolucional multicanal completa** $(N, C_{in}, H, W) \rightarrow (N, C_{out}, H', W')$ verificada contra una referencia im2col.`} />
             <div className="space-y-6">
               {CNN_EXERCISES.map((ex) => (
@@ -393,6 +395,21 @@ Aquí está la cuenta que hizo famosa a VGG: tres capas 3×3 ven lo mismo que un
             </div>
           </section>
 
+          {/* S6b · Proyecto práctico: clasificador gatos vs perros */}
+          <section id="proyecto">
+            <SectionHead kicker="// 3.7 · proyecto práctico" title="Clasificador de gatos y perros, de principio a fin" />
+            <Prose content={String.raw`Todo lo anterior era entrenamiento; esto es el partido. En este mini-proyecto construirás un clasificador de gatos y perros completo: generarás un dataset sintético pero realista (con la variabilidad de las fotos de verdad — traslaciones, escalas, ruido), implementarás el forward de una mini-CNN, la entrenarás y la evaluarás como se hace en producción.
+
+La arquitectura es modesta — una convolución de 4 filtros, pooling y una cabeza densa — pero el workflow es literalmente el de un proyecto real: **datos → forward → entrenamiento → métricas → análisis de errores**. Y la técnica central también: la convolución va congelada con pesos preentrenados y solo se entrena la cabeza, que es exactamente lo que hace el **transfer learning** cuando reutilizas una ResNet descargada para tu problema concreto.
+
+Los cuatro ejercicios están encadenados: lo que construyes en uno se reutiliza en el siguiente. Al terminar tendrás un clasificador con más del 90 % de acierto sobre datos que nunca ha visto y, más importante, el esqueleto mental de cualquier proyecto de visión por computador.`} />
+            <div className="space-y-6">
+              {CNN_PETS_EXERCISES.map((ex) => (
+                <ExerciseCard key={ex.id} exercise={getExercise(ex.id)!} />
+              ))}
+            </div>
+          </section>
+
           {/* S7 · Siguiente nivel */}
           <section>
             <Link
@@ -401,7 +418,7 @@ Aquí está la cuenta que hizo famosa a VGG: tres capas 3×3 ven lo mismo que un
             >
               <div>
                 <div className="mb-2 font-mono text-[0.78rem] uppercase tracking-[0.14em] text-violet">
-                  // SIGUIENTE · NIVEL 5
+                  // SIGUIENTE · NIVEL 4
                 </div>
                 <div className="font-display text-2xl font-bold text-ink">Secuencias: memoria y atención</div>
                 <p className="mt-1 text-sm text-muted">
