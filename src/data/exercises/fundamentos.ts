@@ -1,7 +1,8 @@
 /**
  * fundamentos.ts — Ejercicios autocorregidos del módulo Fundamentos (N0–N1).
  * Rampa completa: 5 ejercicios «desde cero absoluto» (E0.x, BÁSICO, bucles a
- * mano) + 5 ejercicios originales (BÁSICO → AVANZADO) + quiz en la página.
+ * mano) + 5 ejercicios originales (BÁSICO → AVANZADO) + 3 del proyecto
+ * práctico «precio de vivienda» (P1.x) + quiz en la página.
  * Todas las solution_code pasan su propio test_code al 100 % (verificado con
  * python3 + numpy 2.x replicando el harness check()).
  */
@@ -232,7 +233,7 @@ check("Coincide con np.dot en datos aleatorios",
     xp: 20,
     statement: [
       'La derivada es la pendiente de una curva en un punto. Se aproxima con dos puntos muy cercanos (la «secante»):',
-      "$$f'(x) \\approx \\frac{f(x + h) - f(x)}{h} \\quad \\text{con } h \\text{ pequeña}$$",
+      '$$f\\\'(x) \\approx \\frac{f(x + h) - f(x)}{h} \\quad \\text{con } h \\text{ pequeña}$$',
       'Implementa `pendiente(f, x, h=0.001)` que devuelva esa aproximación. Después comprobaremos la regla de la potencia: para $f(x) = x^2$, la pendiente en $x$ es $2x$.',
     ].join('\n\n'),
     starter_code: `import numpy as np
@@ -624,6 +625,396 @@ check("Con λ=0 coincide con mínimos cuadrados (lstsq)",
       '`np.vander(X, N=degree + 1, increasing=True)` te da las columnas $1, x, x^2, \\dots$ en el orden pedido.',
       'Construye `I = np.eye(degree + 1)` y pon `I[0, 0] = 0.0` antes de multiplicar por λ.',
       'Resuelve el sistema con `np.linalg.solve(V.T @ V + lam * I, V.T @ y)` — no uses `np.linalg.inv`.',
+    ],
+  },
+  /* ---------------------------------------------------------------- */
+  /* Proyecto práctico: predice el precio de una vivienda              */
+  /* ---------------------------------------------------------------- */
+  {
+    id: 'fundamentos-housing-data',
+    title: 'P1.1 · Viviendas: explorar, dividir y normalizar',
+    difficulty: 'BASICO',
+    xp: 40,
+    statement: [
+      'Proyecto real de inmobiliaria: estimar el precio de una vivienda a partir de sus características. Te damos el generador `make_housing(n, seed)`, que simula $n$ anuncios con 4 features — superficie (m², 40–180), habitaciones (1–5), distancia al centro (km, 0.5–20) y antigüedad (años, 0–50) — y un precio en **miles de euros** casi lineal en las features, con ruido.',
+      'Antes de entrenar nada, un profesional hace tres cosas: **explora** los datos, **divide** en train/test y **normaliza** usando solo estadísticas del train. Implementa las tres piezas:',
+      '- `train_test_split(X, y, test_ratio=0.2, seed=0)`: baraja los índices con `np.random.default_rng(seed)` y devuelve `(X_train, X_test, y_train, y_test)`.\n- `normalizar(X_train, X_test)`: estandariza cada columna a media 0 y std 1 **con la media y std del TRAIN** y devuelve `(X_train_norm, X_test_norm)`. Usar las estadísticas del train también en el test evita la *fuga de datos* (data leakage).\n- `correlaciones(X, y)`: un array con la correlación de Pearson de cada feature con el precio (`np.corrcoef`).',
+      '$$z = \\frac{x - \\mu_{train}}{\\sigma_{train}}$$',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+def make_housing(n=600, seed=42):
+    """Dataset sintético de viviendas. Precio en miles de euros."""
+    rng = np.random.default_rng(seed)
+    m2 = rng.uniform(40, 180, n)               # superficie en m2
+    hab = rng.integers(1, 6, n).astype(float)  # habitaciones 1-5
+    dist = rng.uniform(0.5, 20, n)             # km al centro
+    antig = rng.uniform(0, 50, n)              # antigüedad en años
+    X = np.column_stack([m2, hab, dist, antig])
+    precio = (2.0 * m2 + 15.0 * hab - 7.0 * dist - 0.8 * antig
+              + 0.0035 * m2 ** 2 + 100.0 + rng.normal(0, 10, n))
+    return X, np.maximum(precio, 40.0)  # nada baja de 40 kEUR
+
+def train_test_split(X, y, test_ratio=0.2, seed=0):
+    """Devuelve (X_train, X_test, y_train, y_test) barajando con la seed."""
+    # TODO: permuta los índices y corta
+    return X, X, y, y
+
+def normalizar(X_train, X_test):
+    """Estandariza columnas con media y std del TRAIN. Devuelve (train_n, test_n)."""
+    # TODO
+    return X_train, X_test
+
+def correlaciones(X, y):
+    """Correlación de Pearson de cada columna de X con y (array de 4 valores)."""
+    # TODO
+    return np.zeros(X.shape[1])
+
+X, y = make_housing(600, seed=42)
+print(correlaciones(X, y))  # la primera (m2) debería rondar 0.9
+`,
+    solution_code: `import numpy as np
+
+def make_housing(n=600, seed=42):
+    """Dataset sintético de viviendas. Precio en miles de euros."""
+    rng = np.random.default_rng(seed)
+    m2 = rng.uniform(40, 180, n)
+    hab = rng.integers(1, 6, n).astype(float)
+    dist = rng.uniform(0.5, 20, n)
+    antig = rng.uniform(0, 50, n)
+    X = np.column_stack([m2, hab, dist, antig])
+    precio = (2.0 * m2 + 15.0 * hab - 7.0 * dist - 0.8 * antig
+              + 0.0035 * m2 ** 2 + 100.0 + rng.normal(0, 10, n))
+    return X, np.maximum(precio, 40.0)
+
+def train_test_split(X, y, test_ratio=0.2, seed=0):
+    rng = np.random.default_rng(seed)
+    idx = rng.permutation(X.shape[0])
+    n_test = int(round(test_ratio * X.shape[0]))
+    te, tr = idx[:n_test], idx[n_test:]
+    return X[tr], X[te], y[tr], y[te]
+
+def normalizar(X_train, X_test):
+    mu = X_train.mean(axis=0)
+    sigma = X_train.std(axis=0)
+    return (X_train - mu) / sigma, (X_test - mu) / sigma
+
+def correlaciones(X, y):
+    return np.array([np.corrcoef(X[:, j], y)[0, 1] for j in range(X.shape[1])])
+`,
+    test_code: `
+_X, _y = make_housing(600, seed=42)
+check("make_housing devuelve X (600, 4) e y (600,)",
+      lambda: _X.shape == (600, 4) and _y.shape == (600,),
+      msg="X debe ser (n, 4) e y un vector de n precios")
+check("Rangos realistas de las features",
+      lambda: _X[:, 0].min() >= 40 and _X[:, 0].max() <= 180
+              and _X[:, 1].min() >= 1 and _X[:, 1].max() <= 5
+              and _X[:, 2].min() >= 0.5 and _X[:, 2].max() <= 20
+              and _X[:, 3].min() >= 0 and _X[:, 3].max() <= 50,
+      msg="m2 en [40,180], habitaciones en [1,5], distancia en [0.5,20], antigüedad en [0,50]")
+check("Precios en miles de euros plausibles (40-700 kEUR)",
+      lambda: _y.min() >= 40 and _y.max() < 700,
+      msg="revisa la escala: ~2 kEUR por m2 ya da 80-360 kEUR solo de superficie")
+
+_Xtr, _Xte, _ytr, _yte = train_test_split(_X, _y, test_ratio=0.2, seed=1)
+check("Split 80/20: 480 train + 120 test",
+      lambda: _Xtr.shape == (480, 4) and _Xte.shape == (120, 4) and _ytr.shape == (480,) and _yte.shape == (120,),
+      msg="con n=600 y test_ratio=0.2 deben quedar 120 muestras de test")
+check("El split es una permutación (sin perder ni repetir datos)",
+      lambda: np.allclose(np.sort(np.concatenate([_ytr, _yte])), np.sort(_y)),
+      msg="baraja los índices con rng.permutation antes de cortar")
+check("Semilla reproducible",
+      lambda: np.allclose(train_test_split(_X, _y, 0.2, seed=1)[1], _Xte),
+      msg="misma seed -> mismo split; usa np.random.default_rng(seed)")
+
+_Xtrn, _Xten = normalizar(_Xtr, _Xte)
+check("Train normalizado: media ~0 y std ~1 por columna",
+      lambda: np.allclose(_Xtrn.mean(axis=0), 0, atol=1e-8) and np.allclose(_Xtrn.std(axis=0), 1, atol=1e-8),
+      msg="resta la media y divide entre la std del TRAIN, columna a columna")
+_mu, _sg = _Xtr.mean(axis=0), _Xtr.std(axis=0)
+check("Test se normaliza con las estadísticas del TRAIN (sin fuga de datos)",
+      lambda: np.allclose(_Xten, (_Xte - _mu) / _sg),
+      msg="usa mu y sigma calculados SOLO con X_train, también para el test")
+
+_c = correlaciones(_X, _y)
+check("correlaciones devuelve un valor por feature",
+      lambda: np.asarray(_c).shape == (4,),
+      msg="un np.corrcoef por columna contra el precio: 4 valores")
+check("Los m2 son la feature más correlacionada (positiva)",
+      lambda: _c[0] > 0.8 and _c[0] == max(_c),
+      msg="el precio crece casi linealmente con la superficie: corr ~0.9")
+check("Distancia y antigüedad correlacionan negativo",
+      lambda: _c[2] < -0.3 and _c[3] < 0,
+      msg="más lejos del centro y más vieja -> más barata")
+`,
+    hints: [
+      'Para el split: `idx = rng.permutation(len(X))`, corta `idx[:n_test]` para test y `idx[n_test:]` para train, e indexa con corchetes: `X[tr]`.',
+      'En `normalizar` calcula `mu` y `sigma` con `axis=0` SOLO sobre `X_train`; luego aplica `(X - mu) / sigma` a ambos conjuntos.',
+      '`np.corrcoef(a, b)` devuelve una matriz 2×2; el valor que quieres es la posición `[0, 1]`.',
+    ],
+  },
+  {
+    id: 'fundamentos-housing-gd',
+    title: 'P1.2 · Viviendas: entrenar la regresión con gradiente',
+    difficulty: 'INTERMEDIO',
+    xp: 80,
+    statement: [
+      'Segunda parte del proyecto inmobiliario: el modelo. Implementa `fit_lineal_gd(X, y, lr=0.1, epochs=3000)` que ajuste $\\hat{y} = Xw + b$ con $w \\in \\mathbb{R}^4$ minimizando el MSE por descenso del gradiente **batch** partiendo de ceros, y `predecir(X, w, b)` vectorizada.',
+      '$$\\nabla_w L = \\frac{2}{N} X^{\\top}(Xw + b - y), \\qquad \\frac{\\partial L}{\\partial b} = \\frac{2}{N}\\sum_i (\\hat{y}_i - y_i)$$',
+      'El test monta el pipeline completo por ti: genera 600 viviendas, divide 80/20 y normaliza con las estadísticas del train. Exige un $R^2 \\geq 0.90$ en test (un modelo correcto ronda 0.99):',
+      '$$R^2 = 1 - \\frac{\\sum_i (y_i - \\hat{y}_i)^2}{\\sum_i (y_i - \\bar{y})^2}$$',
+      'Y la prueba de fuego de cualquier tasador: predecir una vivienda concreta de **100 m², 3 habitaciones, 5 km al centro y 10 años de antigüedad**. Su precio justo ronda los 337 k€; el test admite el rango 325–360 k€. Ojo: hay que normalizar esa vivienda con la media y std del **train** antes de predecir.',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+def make_housing(n=600, seed=42):
+    """Dataset sintético de viviendas. Precio en miles de euros."""
+    rng = np.random.default_rng(seed)
+    m2 = rng.uniform(40, 180, n)
+    hab = rng.integers(1, 6, n).astype(float)
+    dist = rng.uniform(0.5, 20, n)
+    antig = rng.uniform(0, 50, n)
+    X = np.column_stack([m2, hab, dist, antig])
+    precio = (2.0 * m2 + 15.0 * hab - 7.0 * dist - 0.8 * antig
+              + 0.0035 * m2 ** 2 + 100.0 + rng.normal(0, 10, n))
+    return X, np.maximum(precio, 40.0)
+
+def fit_lineal_gd(X, y, lr=0.1, epochs=3000):
+    """Regresión lineal multivariante y_hat = X @ w + b con GD batch sobre MSE.
+    Devuelve (w, b) partiendo de ceros."""
+    # TODO: bucle de entrenamiento
+    return np.zeros(X.shape[1]), 0.0
+
+def predecir(X, w, b):
+    """Predicción vectorizada del modelo lineal."""
+    # TODO: una línea
+    return None
+
+# Pipeline completo (como en el ejercicio anterior)
+X, y = make_housing(600, seed=42)
+rng = np.random.default_rng(0)
+idx = rng.permutation(len(y))
+te, tr = idx[:120], idx[120:]
+mu, sg = X[tr].mean(axis=0), X[tr].std(axis=0)
+Xtr, Xte = (X[tr] - mu) / sg, (X[te] - mu) / sg
+ytr, yte = y[tr], y[te]
+
+w, b = fit_lineal_gd(Xtr, ytr, lr=0.1, epochs=3000)
+pred = predecir(Xte, w, b)
+r2 = 1 - np.sum((yte - pred) ** 2) / np.sum((yte - yte.mean()) ** 2)
+print("R2 test:", r2)
+casa = np.array([100.0, 3.0, 5.0, 10.0])  # 100 m2, 3 hab, 5 km, 10 años
+print("Precio estimado (kEUR):", predecir((casa - mu) / sg, w, b))
+`,
+    solution_code: `import numpy as np
+
+def make_housing(n=600, seed=42):
+    rng = np.random.default_rng(seed)
+    m2 = rng.uniform(40, 180, n)
+    hab = rng.integers(1, 6, n).astype(float)
+    dist = rng.uniform(0.5, 20, n)
+    antig = rng.uniform(0, 50, n)
+    X = np.column_stack([m2, hab, dist, antig])
+    precio = (2.0 * m2 + 15.0 * hab - 7.0 * dist - 0.8 * antig
+              + 0.0035 * m2 ** 2 + 100.0 + rng.normal(0, 10, n))
+    return X, np.maximum(precio, 40.0)
+
+def fit_lineal_gd(X, y, lr=0.1, epochs=3000):
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n, d = X.shape
+    w = np.zeros(d)
+    b = 0.0
+    for _ in range(epochs):
+        err = X @ w + b - y
+        w -= lr * (2.0 / n) * (X.T @ err)
+        b -= lr * (2.0 / n) * float(np.sum(err))
+    return w, b
+
+def predecir(X, w, b):
+    return np.asarray(X, dtype=float) @ w + b
+`,
+    test_code: `
+_X, _y = make_housing(600, seed=42)
+_rng = np.random.default_rng(0)
+_idx = _rng.permutation(_X.shape[0])
+_te, _tr = _idx[:120], _idx[120:]
+_Xtr, _Xte, _ytr, _yte = _X[_tr], _X[_te], _y[_tr], _y[_te]
+_mu, _sg = _Xtr.mean(axis=0), _Xtr.std(axis=0)
+_Xtrn, _Xten = (_Xtr - _mu) / _sg, (_Xte - _mu) / _sg
+
+_w, _b = fit_lineal_gd(_Xtrn, _ytr, lr=0.1, epochs=3000)
+check("w es un vector de 4 pesos y b un escalar",
+      lambda: np.asarray(_w).shape == (4,) and np.ndim(_b) == 0,
+      msg="un peso por feature (m2, habitaciones, distancia, antigüedad)")
+
+_pred_tr = predecir(_Xtrn, _w, _b)
+_pred_te = predecir(_Xten, _w, _b)
+check("predecir devuelve una predicción por muestra",
+      lambda: np.asarray(_pred_te).shape == (120,),
+      msg="y_hat = X @ w + b, vectorizado")
+
+def _r2(y, p):
+    return 1.0 - float(np.sum((y - p) ** 2)) / float(np.sum((y - y.mean()) ** 2))
+
+check("R² en train >= 0.95", lambda: _r2(_ytr, _pred_tr) >= 0.95,
+      msg="3000 épocas con lr=0.1 sobre datos normalizados deberían bastar; revisa los gradientes")
+check("R² en test >= 0.90 (objetivo del proyecto)",
+      lambda: _r2(_yte, _pred_te) >= 0.90,
+      msg="un modelo lineal bien entrenado supera R²=0.98 en este dataset")
+
+_casa = np.array([100.0, 3.0, 5.0, 10.0])  # 100 m2, 3 hab, 5 km, 10 años
+_pred_casa = float(np.asarray(predecir((_casa - _mu) / _sg, _w, _b)).ravel()[0])
+check("Predicción para la vivienda de ejemplo en rango razonable (325-360 kEUR)",
+      lambda: 325.0 <= _pred_casa <= 360.0,
+      msg="normaliza la vivienda nueva con la media y std del TRAIN antes de predecir; el precio justo ronda los 337 kEUR")
+
+_w2, _b2 = fit_lineal_gd(_Xtrn, _ytr, lr=0.05, epochs=200)
+_l0 = float(np.mean((_Xtrn @ np.zeros(4) - _ytr) ** 2))
+_l1 = float(np.mean((predecir(_Xtrn, _w2, _b2) - _ytr) ** 2))
+check("El descenso reduce la pérdida (200 épocas bastan para bajar mucho)",
+      lambda: _l1 < 0.2 * _l0,
+      msg="si la pérdida no baja, revisa el signo de la actualización: w -= lr * gradiente")
+`,
+    hints: [
+      'El error es `err = X @ w + b - y`; los gradientes son `(2/n) * (X.T @ err)` y `(2/n) * err.sum()`. Resta `lr * gradiente` en cada época.',
+      'Todo vectorizado: no hace falta ningún bucle sobre muestras, solo el de las épocas.',
+      'Para la vivienda concreta: transfórmala igual que el test — `(casa - mu) / sg` — antes de llamar a `predecir`.',
+    ],
+  },
+  {
+    id: 'fundamentos-housing-outliers',
+    title: 'P1.3 · Viviendas: datos sucios y pérdidas robustas',
+    difficulty: 'INTERMEDIO',
+    xp: 70,
+    statement: [
+      'Los datos reales están sucios: un portal mezcla mansiones mal etiquetadas y precios con un cero de más. `make_housing_outliers` toma el dataset limpio e **infla el precio de un 8 % de los anuncios (×3 a ×5)**. Verás que esto rompe el MSE.',
+      'Implementa `fit_perdida(X, y, perdida="mse", lr=0.1, epochs=3000, delta=25.0)` con dos pérdidas. En el MSE el gradiente por muestra es proporcional al error $e_i$ — y un error 10× mayor pesa 10× más. En la **pérdida de Huber** el gradiente se recorta a $\\mathrm{clip}(e_i, -\\delta, \\delta)$: pasado $\\delta$, un outlier deja de empujar más.',
+      '$$L_\\delta(e) = \\begin{cases} \\frac{1}{2}e^2 & |e| \\leq \\delta \\\\ \\delta\\,(|e| - \\frac{\\delta}{2}) & |e| > \\delta \\end{cases} \\qquad \\frac{\\partial L_\\delta}{\\partial e} = \\mathrm{clip}(e, -\\delta, \\delta)$$',
+      'El test entrena ambos modelos con tu función sobre el train sucio y los evalúa en un test **limpio**: el MSE debe hundirse ($R^2 < 0.8$) mientras Huber se mantiene por encima de $0.90$. Esa diferencia es exactamente el argumento que darías en una reunión para justificar una pérdida robusta.',
+    ].join('\n\n'),
+    starter_code: `import numpy as np
+
+def make_housing(n=600, seed=42):
+    rng = np.random.default_rng(seed)
+    m2 = rng.uniform(40, 180, n)
+    hab = rng.integers(1, 6, n).astype(float)
+    dist = rng.uniform(0.5, 20, n)
+    antig = rng.uniform(0, 50, n)
+    X = np.column_stack([m2, hab, dist, antig])
+    precio = (2.0 * m2 + 15.0 * hab - 7.0 * dist - 0.8 * antig
+              + 0.0035 * m2 ** 2 + 100.0 + rng.normal(0, 10, n))
+    return X, np.maximum(precio, 40.0)
+
+def make_housing_outliers(n=600, seed=42, frac=0.08):
+    """Como make_housing, pero un 8 % de anuncios con precio x3-x5."""
+    X, y = make_housing(n, seed)
+    rng = np.random.default_rng(seed + 1)
+    k = int(round(frac * n))
+    idx = rng.choice(n, size=k, replace=False)
+    y[idx] = y[idx] * rng.uniform(3.0, 5.0, size=k)
+    return X, y, idx
+
+def fit_perdida(X, y, perdida="mse", lr=0.1, epochs=3000, delta=25.0):
+    """Regresión lineal por GD. Devuelve (w, b).
+    perdida="mse":   gradiente por muestra ~ err
+    perdida="huber": gradiente por muestra ~ clip(err, -delta, delta)
+    """
+    # TODO: un solo bucle que cambia solo en cómo se transforma err
+    return np.zeros(X.shape[1]), 0.0
+
+Xtr, ytr, idx_out = make_housing_outliers(600, seed=42)
+Xte, yte = make_housing(400, seed=123)  # test limpio
+mu, sg = Xtr.mean(axis=0), Xtr.std(axis=0)
+Xtrn, Xten = (Xtr - mu) / sg, (Xte - mu) / sg
+
+for perdida in ["mse", "huber"]:
+    w, b = fit_perdida(Xtrn, ytr, perdida, lr=0.1, epochs=3000)
+    pred = Xten @ w + b
+    r2 = 1 - np.sum((yte - pred) ** 2) / np.sum((yte - yte.mean()) ** 2)
+    print(perdida, "-> R2 test limpio:", r2)
+`,
+    solution_code: `import numpy as np
+
+def make_housing(n=600, seed=42):
+    rng = np.random.default_rng(seed)
+    m2 = rng.uniform(40, 180, n)
+    hab = rng.integers(1, 6, n).astype(float)
+    dist = rng.uniform(0.5, 20, n)
+    antig = rng.uniform(0, 50, n)
+    X = np.column_stack([m2, hab, dist, antig])
+    precio = (2.0 * m2 + 15.0 * hab - 7.0 * dist - 0.8 * antig
+              + 0.0035 * m2 ** 2 + 100.0 + rng.normal(0, 10, n))
+    return X, np.maximum(precio, 40.0)
+
+def make_housing_outliers(n=600, seed=42, frac=0.08):
+    X, y = make_housing(n, seed)
+    rng = np.random.default_rng(seed + 1)
+    k = int(round(frac * n))
+    idx = rng.choice(n, size=k, replace=False)
+    y[idx] = y[idx] * rng.uniform(3.0, 5.0, size=k)
+    return X, y, idx
+
+def fit_perdida(X, y, perdida="mse", lr=0.1, epochs=3000, delta=25.0):
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n, d = X.shape
+    w = np.zeros(d)
+    b = 0.0
+    for _ in range(epochs):
+        err = X @ w + b - y
+        if perdida == "mse":
+            g = err
+        else:  # huber
+            g = np.clip(err, -delta, delta)
+        w -= lr * (X.T @ g) / n
+        b -= lr * float(np.sum(g)) / n
+    return w, b
+`,
+    test_code: `
+_Xtr, _ytr, _idx_out = make_housing_outliers(600, seed=42)
+_Xte, _yte = make_housing(400, seed=123)  # test limpio, sin outliers
+_mu, _sg = _Xtr.mean(axis=0), _Xtr.std(axis=0)
+_Xtrn, _Xten = (_Xtr - _mu) / _sg, (_Xte - _mu) / _sg
+
+check("El generador inyecta el 8 % de outliers",
+      lambda: len(_idx_out) == 48 and _ytr[_idx_out].min() > 300,
+      msg="frac=0.08 sobre n=600 -> 48 anuncios con precio inflado")
+
+def _r2(y, p):
+    return 1.0 - float(np.sum((y - p) ** 2)) / float(np.sum((y - y.mean()) ** 2))
+
+_wm, _bm = fit_perdida(_Xtrn, _ytr, "mse", lr=0.1, epochs=3000)
+_wh, _bh = fit_perdida(_Xtrn, _ytr, "huber", lr=0.1, epochs=3000, delta=25.0)
+_r2_mse = _r2(_yte, _Xten @ _wm + _bm)
+_r2_hub = _r2(_yte, _Xten @ _wh + _bh)
+
+check("Con outliers, el MSE se deja arrastrar (R² test < 0.8)",
+      lambda: _r2_mse < 0.8,
+      msg="con un 8 % de precios 3-5x, minimizar el error cuadrático desvía mucho el plano")
+check("Huber se mantiene: R² test >= 0.90",
+      lambda: _r2_hub >= 0.90,
+      msg="el gradiente de Huber es clip(err, -delta, delta): los outliers no dominan")
+check("La pérdida robusta mejora al MSE por al menos 0.2 de R²",
+      lambda: _r2_hub > _r2_mse + 0.2,
+      msg="esa es la mejora que reportarías en un proyecto real con datos sucios")
+
+# El gradiente de Huber debe coincidir con el del MSE si todos los errores son pequeños
+_rng = np.random.default_rng(3)
+_Xs = _rng.normal(0, 1, (50, 4))
+_ws = _rng.normal(0, 1, 4)
+_ys = _Xs @ _ws + _rng.normal(0, 0.01, 50)
+_w1, _b1 = fit_perdida(_Xs, _ys, "mse", lr=0.5, epochs=800)
+_w2, _b2 = fit_perdida(_Xs, _ys, "huber", lr=0.5, epochs=800, delta=25.0)
+check("Sin outliers, Huber y MSE coinciden (errores pequeños)",
+      lambda: np.allclose(_w1, _w2, atol=1e-2) and np.allclose(_b1, _b2, atol=1e-2),
+      msg="si |err| < delta, clip no recorta: ambas pérdidas son equivalentes")
+`,
+    hints: [
+      'Un solo bucle sirve para ambas: calcula `err = X @ w + b - y` y transforma `err` en `g` según la pérdida (`g = err` o `g = np.clip(err, -delta, delta)`).',
+      'Las actualizaciones son `w -= lr * (X.T @ g) / n` y `b -= lr * g.sum() / n` — el gradiente de Huber solo cambia en el recorte.',
+      'Si Huber no supera 0.9, revisa que el `delta` se aplica sobre el error en k€ (25 k€), no sobre datos normalizados.',
     ],
   },
 ]
