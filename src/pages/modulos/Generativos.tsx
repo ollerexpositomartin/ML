@@ -437,7 +437,7 @@ export default function Generativos() {
             </div>
             <Prose>
               <p>
-                El proceso inverso es lo aprendido: una red <TeX content="$\\varepsilon_\\theta(x_t, t)$" />{' '}
+                El proceso inverso es lo aprendido: una red <TeX content="$\varepsilon_\theta(x_t, t)$" />{' '}
                 predice el ruido que contiene <TeX content="$x_t$" />, y muestrear consiste en quitar ruido paso
                 a paso desde <TeX content="$x_T \\sim \\mathcal{N}(0, I)$" /> hasta una imagen limpia. ¿Por qué
                 le ganó la partida a las GAN? <strong className="text-ink">Estabilidad</strong> (no hay duelo
@@ -527,7 +527,7 @@ export default function Generativos() {
               <QuizCard
                 quizId="generativos-q4"
                 xp={44}
-                question="En un modelo de difusión, ¿qué predice la red $\\varepsilon_\\theta(x_t, t)$?"
+                question="En un modelo de difusión, ¿qué predice la red $\varepsilon_\theta(x_t, t)$?"
                 options={[
                   { text: 'La imagen limpia $x_0$ directamente', correct: false, explanation: 'Algunas variantes predicen $x_0$, pero la formulación estándar (DDPM) predice otra cosa…' },
                   { text: 'El ruido $\\varepsilon$ que se añadió a $x_0$ para obtener $x_t$', correct: true, explanation: 'Exacto: predecir el ruido equivale a saber “hacia dónde está lo limpio”. Restándolo iterativamente se muestrea desde ruido puro.' },
