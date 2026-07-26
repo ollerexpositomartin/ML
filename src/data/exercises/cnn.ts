@@ -1693,7 +1693,6 @@ def extraer_features(X):
         features.append(np.concatenate([m.ravel() for m in mapas]))
     return np.array(features)
 
-
 def entrenar_cabeza(F, y, lr=0.5, epochs=300):
     n, d = F.shape
     rng = np.random.default_rng(0)
