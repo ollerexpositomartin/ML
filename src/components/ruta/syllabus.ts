@@ -16,7 +16,7 @@ export interface SyllabusTopic {
 }
 
 export interface SyllabusModule {
-  level: 'N0' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6' | 'BOSS'
+  level: 'N0' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6' | 'N7' | 'N8' | 'N9' | 'N10' | 'BOSS'
   title: string
   path: string
   meta: string
@@ -130,6 +130,65 @@ export const SYLLABUS: SyllabusModule[] = [
       { idx: '6.5', name: 'Ética de la IA generativa', time: '20 min', teoria: 1 },
     ],
     prereqs: [{ label: 'N5 · Transformers', path: '/modulos/transformers' }],
+  },
+  {
+    level: 'N7',
+    title: 'PyTorch práctico',
+    path: '/modulos/pytorch',
+    meta: '3 demos · 6 ejercicios + quiz · 550 XP',
+    topics: [
+      { idx: '7.1', name: 'Autograd: el motor que deriva solo', time: '35 min', teoria: 1, demos: 1 },
+      { idx: '7.2', name: 'Tensores y broadcasting', time: '30 min', teoria: 1, demos: 1 },
+      { idx: '7.3', name: 'El training loop real', time: '40 min', teoria: 1, demos: 1 },
+      { idx: '7.4', name: 'GPU y buenas prácticas', time: '25 min', teoria: 1 },
+      { idx: '7.5', name: 'Ejercicios autocorregidos + quiz', time: '70 min', ejercicios: 7 },
+    ],
+    prereqs: [{ label: 'N2 · Redes neuronales', path: '/modulos/redes-neuronales' }],
+  },
+  {
+    level: 'N8',
+    title: 'LLMs modernos',
+    path: '/modulos/llm-modernos',
+    meta: '3 demos · 6 ejercicios + quiz · 580 XP',
+    topics: [
+      { idx: '8.1', name: 'RoPE y ALiBi: la posición moderna', time: '30 min', teoria: 1 },
+      { idx: '8.2', name: 'KV cache, GQA y FlashAttention', time: '35 min', teoria: 1, demos: 1 },
+      { idx: '8.3', name: 'Mixture of Experts', time: '25 min', teoria: 1, demos: 1 },
+      { idx: '8.4', name: 'Pipeline: pretrain → SFT → RLHF/DPO', time: '40 min', teoria: 1 },
+      { idx: '8.5', name: 'RAG y fine-tuning ligero (LoRA)', time: '35 min', teoria: 1, demos: 1 },
+      { idx: '8.6', name: 'Ejercicios autocorregidos + quiz', time: '70 min', ejercicios: 7 },
+    ],
+    prereqs: [{ label: 'N5 · Transformers', path: '/modulos/transformers' }],
+  },
+  {
+    level: 'N9',
+    title: 'Reinforcement Learning',
+    path: '/modulos/rl',
+    meta: '3 demos · 6 ejercicios + quiz · 570 XP',
+    topics: [
+      { idx: '9.1', name: 'El bucle agente-entorno', time: '25 min', teoria: 1, demos: 1 },
+      { idx: '9.2', name: 'Bandidos: explorar o explotar', time: '30 min', teoria: 1, demos: 1 },
+      { idx: '9.3', name: 'MDP y la ecuación de Bellman', time: '35 min', teoria: 1 },
+      { idx: '9.4', name: 'Q-learning', time: '40 min', teoria: 1, demos: 1 },
+      { idx: '9.5', name: 'Policy gradients: REINFORCE y PPO', time: '35 min', teoria: 1 },
+      { idx: '9.6', name: 'Ejercicios autocorregidos + quiz', time: '70 min', ejercicios: 7 },
+    ],
+    prereqs: [{ label: 'N2 · Redes neuronales', path: '/modulos/redes-neuronales' }],
+  },
+  {
+    level: 'N10',
+    title: 'MLOps y producción',
+    path: '/modulos/mlops',
+    meta: '3 demos · 5 ejercicios + quiz · 490 XP',
+    topics: [
+      { idx: '10.1', name: 'Ciclo de vida del modelo', time: '25 min', teoria: 1, demos: 1 },
+      { idx: '10.2', name: 'Cuantización int8', time: '35 min', teoria: 1, demos: 1 },
+      { idx: '10.3', name: 'Pruning y destilación', time: '30 min', teoria: 1 },
+      { idx: '10.4', name: 'ONNX y formatos de exportación', time: '20 min', teoria: 1 },
+      { idx: '10.5', name: 'Monitoring y drift', time: '30 min', teoria: 1, demos: 1 },
+      { idx: '10.6', name: 'Ejercicios autocorregidos + quiz', time: '60 min', ejercicios: 6 },
+    ],
+    prereqs: [{ label: 'N7 · PyTorch práctico', path: '/modulos/pytorch' }],
   },
   {
     level: 'BOSS',
