@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs>
+    <radialGradient id="glow-center" cx="50%" cy="42%" r="65%">
+      <stop offset="0%" stop-color="#FB7185" stop-opacity="0.16"/>
+      <stop offset="45%" stop-color="#8B5CF6" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#04060D" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FB7185"/>
+      <stop offset="55%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FB7185" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0.15"/>
+    </linearGradient>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#1C2440" stroke-width="1" opacity="0.55"/>
+    </pattern>
+  </defs>
+
+  <!-- fondo -->
+  <rect width="1200" height="900" fill="#04060D"/>
+  <rect width="1200" height="900" fill="url(#grid)"/>
+  <rect width="1200" height="900" fill="url(#glow-center)"/>
+
+  <!-- ondas RoPE: espirales de rotación concéntricas -->
+  <g transform="translate(600,390)" fill="none" stroke-linecap="round">
+    <g opacity="0.9">
+      <path d="M 0 -260 A 260 260 0 1 1 -184 184" stroke="url(#brand)" stroke-width="3" opacity="0.85"/>
+      <path d="M 0 -210 A 210 210 0 1 1 -149 149" stroke="#8B5CF6" stroke-width="2.4" opacity="0.6"/>
+      <path d="M 0 -162 A 162 162 0 1 1 -115 115" stroke="#22D3EE" stroke-width="2" opacity="0.5"/>
+      <path d="M 0 -118 A 118 118 0 1 1 -83 83" stroke="#FB7185" stroke-width="1.8" opacity="0.55"/>
+      <path d="M 0 -78 A 78 78 0 1 1 -55 55" stroke="#8B5CF6" stroke-width="1.5" opacity="0.45"/>
+      <path d="M 0 -44 A 44 44 0 1 1 -31 31" stroke="#22D3EE" stroke-width="1.3" opacity="0.4"/>
+    </g>
+    <!-- marcas de ángulo (posiciones) -->
+    <g stroke="#55618A" stroke-width="1.4" opacity="0.7">
+      <line x1="0" y1="-260" x2="0" y2="-286"/>
+      <line x1="184" y1="-184" x2="202" y2="-202"/>
+      <line x1="260" y1="0" x2="286" y2="0"/>
+      <line x1="184" y1="184" x2="202" y2="202"/>
+      <line x1="-184" y1="-184" x2="-202" y2="-202"/>
+      <line x1="-260" y1="0" x2="-286" y2="0"/>
+    </g>
+    <!-- vector rotado -->
+    <line x1="0" y1="0" x2="150" y2="-150" stroke="#FB7185" stroke-width="3.4"/>
+    <circle cx="150" cy="-150" r="7" fill="#FB7185"/>
+    <circle cx="150" cy="-150" r="14" fill="none" stroke="#FB7185" opacity="0.4"/>
+    <line x1="0" y1="0" x2="212" y2="0" stroke="#55618A" stroke-width="1.6" stroke-dasharray="5 6"/>
+    <path d="M 92 0 A 92 92 0 0 0 65 -65" stroke="#FBBF24" stroke-width="2.2"/>
+    <text x="104" y="-30" fill="#FBBF24" font-family="monospace" font-size="22">θ·m</text>
+    <circle cx="0" cy="0" r="10" fill="#0D1322" stroke="url(#brand)" stroke-width="3"/>
+  </g>
+
+  <!-- cabezas de atención: matriz de tiles con heatmap -->
+  <g transform="translate(108,560)">
+    <rect x="-14" y="-14" width="332" height="252" rx="14" fill="#0D1322" stroke="#1C2440"/>
+    <g>
+      <rect x="0" y="0" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.20"/>
+      <rect x="42" y="0" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.30"/>
+      <rect x="84" y="0" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.10"/>
+      <rect x="126" y="0" width="34" height="34" rx="5" fill="#FB7185" opacity="0.85"/>
+      <rect x="168" y="0" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.25"/>
+      <rect x="210" y="0" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.15"/>
+      <rect x="252" y="0" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.08"/>
+
+      <rect x="0" y="42" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.35"/>
+      <rect x="42" y="42" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.55"/>
+      <rect x="84" y="42" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.20"/>
+      <rect x="126" y="42" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.30"/>
+      <rect x="168" y="42" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.12"/>
+      <rect x="210" y="42" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.18"/>
+      <rect x="252" y="42" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.10"/>
+
+      <rect x="0" y="84" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.12"/>
+      <rect x="42" y="84" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.25"/>
+      <rect x="84" y="84" width="34" height="34" rx="5" fill="#FB7185" opacity="0.75"/>
+      <rect x="126" y="84" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.40"/>
+      <rect x="168" y="84" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.30"/>
+      <rect x="210" y="84" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.08"/>
+      <rect x="252" y="84" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.14"/>
+
+      <rect x="0" y="126" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.15"/>
+      <rect x="42" y="126" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.28"/>
+      <rect x="84" y="126" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.45"/>
+      <rect x="126" y="126" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.65"/>
+      <rect x="168" y="126" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.22"/>
+      <rect x="210" y="126" width="34" height="34" rx="5" fill="#FB7185" opacity="0.60"/>
+      <rect x="252" y="126" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.16"/>
+
+      <rect x="0" y="168" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.10"/>
+      <rect x="42" y="168" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.18"/>
+      <rect x="84" y="168" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.20"/>
+      <rect x="126" y="168" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.32"/>
+      <rect x="168" y="168" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.50"/>
+      <rect x="210" y="168" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.28"/>
+      <rect x="252" y="168" width="34" height="34" rx="5" fill="#FB7185" opacity="0.80"/>
+
+      <rect x="0" y="210" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.08"/>
+      <rect x="42" y="210" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.14"/>
+      <rect x="84" y="210" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.22"/>
+      <rect x="126" y="210" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.35"/>
+      <rect x="168" y="210" width="34" height="34" rx="5" fill="#8B5CF6" opacity="0.18"/>
+      <rect x="210" y="210" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.42"/>
+      <rect x="252" y="210" width="34" height="34" rx="5" fill="#22D3EE" opacity="0.55"/>
+    </g>
+  </g>
+
+  <!-- haces de luz uniendo "tokens" -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M 170 120 C 380 60, 700 130, 1010 90" stroke="url(#beam)" stroke-width="2.4" opacity="0.8"/>
+    <path d="M 210 200 C 420 150, 640 230, 950 190" stroke="#8B5CF6" stroke-width="1.8" opacity="0.5"/>
+    <path d="M 140 300 C 360 250, 760 320, 1060 260" stroke="#22D3EE" stroke-width="1.6" opacity="0.4"/>
+  </g>
+  <g>
+    <circle cx="170" cy="120" r="9" fill="#0D1322" stroke="#FB7185" stroke-width="3"/>
+    <circle cx="1010" cy="90" r="9" fill="#0D1322" stroke="#22D3EE" stroke-width="3"/>
+    <circle cx="210" cy="200" r="7" fill="#0D1322" stroke="#8B5CF6" stroke-width="2.6"/>
+    <circle cx="950" cy="190" r="7" fill="#0D1322" stroke="#8B5CF6" stroke-width="2.6"/>
+    <circle cx="140" cy="300" r="6" fill="#0D1322" stroke="#22D3EE" stroke-width="2.2"/>
+    <circle cx="1060" cy="260" r="6" fill="#0D1322" stroke="#22D3EE" stroke-width="2.2"/>
+  </g>
+
+  <!-- etiquetas mono -->
+  <text x="108" y="540" fill="#55618A" font-family="monospace" font-size="17" letter-spacing="3">ATTENTION HEADS · Q·K·V</text>
+  <text x="770" y="620" fill="#55618A" font-family="monospace" font-size="17" letter-spacing="3">ROPE · e^(i m θ)</text>
+  <text x="770" y="652" fill="#FB7185" font-family="monospace" font-size="24" font-weight="bold" letter-spacing="4">LLM ERA</text>
+
+  <!-- barras KV cache -->
+  <g transform="translate(770,680)">
+    <rect x="0" y="0" width="26" height="110" rx="4" fill="#22D3EE" opacity="0.25"/>
+    <rect x="34" y="18" width="26" height="92" rx="4" fill="#22D3EE" opacity="0.35"/>
+    <rect x="68" y="38" width="26" height="72" rx="4" fill="#8B5CF6" opacity="0.45"/>
+    <rect x="102" y="60" width="26" height="50" rx="4" fill="#8B5CF6" opacity="0.6"/>
+    <rect x="136" y="84" width="26" height="26" rx="4" fill="#FB7185" opacity="0.9"/>
+    <text x="0" y="140" fill="#55618A" font-family="monospace" font-size="14" letter-spacing="2">KV CACHE · +1/step</text>
+  </g>
+</svg>
