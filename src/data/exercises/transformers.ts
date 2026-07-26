@@ -466,6 +466,861 @@ check("Generaliza a otros n, d, h (d divisible entre h)",
       'Al final: `np.concatenate(heads, axis=1) @ Wo`. Guarda también la lista `heads` tal cual para la segunda salida.',
     ],
   },
+  {
+    id: 'transformers-sent-embed',
+    title: 'P1 · Batch con padding y máscara',
+    difficulty: 'BASICO',
+    xp: 50,
+    statement: [
+      'Te incorporas al equipo de ML de un ecommerce: quieren detectar automáticamente las **reseñas negativas** de producto. El generador `make_reviews(n, seed)` produce reseñas sintéticas pero traicioneras: junto a las positivas y negativas obvias hay **negaciones** («no me gusta nada», «no es malo») que delatan a cualquier modelo de bolsa de palabras.',
+      '',
+      'Primera pieza del pipeline: convertir una lista de secuencias de token ids (de longitudes variables) en un tensor con **padding enmascarado**. Implementa `encode_batch(seqs, E, max_len)`:',
+      '',
+      '- `X`: tensor $(B, max\\_len, d)$ donde cada fila válida es `E[token] + PE[posición]` (embedding + codificación posicional sinusoidal, dada) y las posiciones de padding quedan **exactamente a cero**.\n- `mask`: matriz $(B, max\\_len)$ con 1.0 en tokens reales y 0.0 en padding.\n- Las secuencias más largas que `max_len` se truncan.',
+      '',
+      'La máscara es lo que permitirá a la atención (siguientes ejercicios) ignorar el padding: un batallón de ceros que no debe contar para nada.',
+    ].join('\n'),
+    starter_code: `import numpy as np
+
+VOCAB = {
+    '<pad>': 0, 'me': 1, 'gusta': 2, 'encanta': 3, 'no': 4, 'este': 5,
+    'producto': 6, 'calidad': 7, 'increible': 8, 'horrible': 9, 'rompio': 10,
+    'primer': 11, 'dia': 12, 'muy': 13, 'nada': 14, 'malo': 15, 'bueno': 16,
+    'genial': 17, 'perfecto': 18, 'funciona': 19, 'bien': 20, 'mal': 21,
+    'decepcion': 22, 'recomiendo': 23, 'compra': 24, 'llego': 25, 'roto': 26,
+    'tarde': 27, 'rapido': 28, 'envio': 29, 'precio': 30, 'caro': 31,
+    'barato': 32, 'es': 33, 'una': 34, 'el': 35, 'se': 36, 'volveria': 37,
+    'comprar': 38, 'nunca': 39, 'siempre': 40, 'lo': 41, 'total': 42,
+    'y': 43, 'a': 44, 'la': 45, 'buena': 46, 'mala': 47, 'perfecta': 48,
+}
+
+_POS = [
+    "me encanta este producto", "la calidad es increible", "funciona muy bien",
+    "es genial y barato", "llego rapido y funciona bien", "una compra perfecta",
+    "lo recomiendo siempre", "precio barato y buena calidad", "es muy bueno",
+    "me gusta este producto",
+]
+_NEG = [
+    "es horrible", "se rompio el primer dia", "una decepcion total",
+    "es muy malo", "llego roto y tarde", "precio caro y mala calidad",
+    "nunca volveria a comprar", "es una compra mala", "el envio llego tarde",
+    "calidad mala y precio caro",
+]
+_NEG_FLIP = [   # negativas con negación
+    "no me gusta nada", "no funciona nada bien", "no lo recomiendo",
+    "no es bueno", "no me gusta este producto",
+]
+_NEG_POS = [    # positivas con negación (las que delatan a un bag-of-words)
+    "no es malo", "no es horrible", "no es una decepcion",
+]
+_NEUTRAL = ["este producto", "el producto", "la compra", "el envio"]
+
+def make_reviews(n, seed=1):
+    """Reseñas sintéticas: lista de listas de token ids + etiquetas (1=pos, 0=neg)."""
+    rng = np.random.default_rng(seed)
+    cats = rng.choice(4, size=n, p=[0.30, 0.30, 0.25, 0.15])
+    seqs, labels = [], []
+    for c in cats:
+        if c == 0:
+            words, y = rng.choice(_POS).split(), 1
+        elif c == 1:
+            words, y = rng.choice(_NEG).split(), 0
+        elif c == 2:
+            words, y = rng.choice(_NEG_FLIP).split(), 0
+        else:
+            words, y = rng.choice(_NEG_POS).split(), 1
+        if rng.random() < 0.35:                     # ruido neutro al final
+            words = words + rng.choice(_NEUTRAL).split()
+        seqs.append([VOCAB[w] for w in words])
+        labels.append(y)
+    return seqs, np.array(labels)
+
+D = 16
+_rng = np.random.default_rng(42)
+E = _rng.normal(0, 1.0, size=(len(VOCAB), D))
+E[0] = 0.0   # el embedding de <pad> es cero
+
+def positional_encoding(max_pos, d):
+    """PE sinusoidal del ejercicio E2 del módulo (ya implementada)."""
+    PE = np.zeros((max_pos, d))
+    pos = np.arange(max_pos)[:, None]
+    i = np.arange(d)[None, :]
+    angle = pos / np.power(10000.0, (2 * (i // 2)) / d)
+    PE[:, 0::2] = np.sin(angle[:, 0::2])
+    PE[:, 1::2] = np.cos(angle[:, 1::2])
+    return PE
+
+def encode_batch(seqs, E, max_len):
+    """
+    Convierte una lista de secuencias de token ids en:
+      X:    (B, max_len, d) — embedding + PE, CERO en posiciones de padding
+      mask: (B, max_len)    — 1.0 en tokens reales, 0.0 en padding
+    Las secuencias más largas que max_len se truncan.
+    """
+    # TODO: inicializa a ceros, rellena las filas reales con E[token] + PE[pos]
+    # y marca la máscara
+    B = len(seqs)
+    d = E.shape[1]
+    return np.zeros((B, max_len, d)), np.zeros((B, max_len))
+
+# Prueba rápida
+seqs, labels = make_reviews(8, seed=3)
+X, mask = encode_batch(seqs, E, 8)
+print(X.shape, mask.shape)
+print(mask.astype(int))
+`,
+    solution_code: `import numpy as np
+
+VOCAB = {
+    '<pad>': 0, 'me': 1, 'gusta': 2, 'encanta': 3, 'no': 4, 'este': 5,
+    'producto': 6, 'calidad': 7, 'increible': 8, 'horrible': 9, 'rompio': 10,
+    'primer': 11, 'dia': 12, 'muy': 13, 'nada': 14, 'malo': 15, 'bueno': 16,
+    'genial': 17, 'perfecto': 18, 'funciona': 19, 'bien': 20, 'mal': 21,
+    'decepcion': 22, 'recomiendo': 23, 'compra': 24, 'llego': 25, 'roto': 26,
+    'tarde': 27, 'rapido': 28, 'envio': 29, 'precio': 30, 'caro': 31,
+    'barato': 32, 'es': 33, 'una': 34, 'el': 35, 'se': 36, 'volveria': 37,
+    'comprar': 38, 'nunca': 39, 'siempre': 40, 'lo': 41, 'total': 42,
+    'y': 43, 'a': 44, 'la': 45, 'buena': 46, 'mala': 47, 'perfecta': 48,
+}
+
+_POS = [
+    "me encanta este producto", "la calidad es increible", "funciona muy bien",
+    "es genial y barato", "llego rapido y funciona bien", "una compra perfecta",
+    "lo recomiendo siempre", "precio barato y buena calidad", "es muy bueno",
+    "me gusta este producto",
+]
+_NEG = [
+    "es horrible", "se rompio el primer dia", "una decepcion total",
+    "es muy malo", "llego roto y tarde", "precio caro y mala calidad",
+    "nunca volveria a comprar", "es una compra mala", "el envio llego tarde",
+    "calidad mala y precio caro",
+]
+_NEG_FLIP = [
+    "no me gusta nada", "no funciona nada bien", "no lo recomiendo",
+    "no es bueno", "no me gusta este producto",
+]
+_NEG_POS = [
+    "no es malo", "no es horrible", "no es una decepcion",
+]
+_NEUTRAL = ["este producto", "el producto", "la compra", "el envio"]
+
+def make_reviews(n, seed=1):
+    rng = np.random.default_rng(seed)
+    cats = rng.choice(4, size=n, p=[0.30, 0.30, 0.25, 0.15])
+    seqs, labels = [], []
+    for c in cats:
+        if c == 0:
+            words, y = rng.choice(_POS).split(), 1
+        elif c == 1:
+            words, y = rng.choice(_NEG).split(), 0
+        elif c == 2:
+            words, y = rng.choice(_NEG_FLIP).split(), 0
+        else:
+            words, y = rng.choice(_NEG_POS).split(), 1
+        if rng.random() < 0.35:
+            words = words + rng.choice(_NEUTRAL).split()
+        seqs.append([VOCAB[w] for w in words])
+        labels.append(y)
+    return seqs, np.array(labels)
+
+D = 16
+_rng = np.random.default_rng(42)
+E = _rng.normal(0, 1.0, size=(len(VOCAB), D))
+E[0] = 0.0
+
+def positional_encoding(max_pos, d):
+    PE = np.zeros((max_pos, d))
+    pos = np.arange(max_pos)[:, None]
+    i = np.arange(d)[None, :]
+    angle = pos / np.power(10000.0, (2 * (i // 2)) / d)
+    PE[:, 0::2] = np.sin(angle[:, 0::2])
+    PE[:, 1::2] = np.cos(angle[:, 1::2])
+    return PE
+
+def encode_batch(seqs, E, max_len):
+    B = len(seqs)
+    d = E.shape[1]
+    X = np.zeros((B, max_len, d))
+    mask = np.zeros((B, max_len))
+    PE = positional_encoding(max_len, d)
+    for b, s in enumerate(seqs):
+        L = min(len(s), max_len)
+        X[b, :L] = E[np.asarray(s[:L])] + PE[:L]
+        mask[b, :L] = 1.0
+    return X, mask
+
+# Prueba rápida
+seqs, labels = make_reviews(8, seed=3)
+X, mask = encode_batch(seqs, E, 8)
+print(X.shape, mask.shape)
+print(mask.astype(int))
+`,
+    test_code: `
+_seqs, _y = make_reviews(20, seed=5)
+_max = 8
+_X, _mask = encode_batch(_seqs, E, _max)
+check("Formas: X (B, max_len, d) y mask (B, max_len)",
+      lambda: _X.shape == (20, _max, 16) and _mask.shape == (20, _max),
+      msg=f"Se esperaba (20, {_max}, 16) y (20, {_max}), llegaron {_X.shape} y {_mask.shape}")
+
+_L = np.array([min(len(s), _max) for s in _seqs])
+_mask_ref = (np.arange(_max)[None, :] < _L[:, None]).astype(float)
+check("La máscara vale 1 en tokens reales y 0 en padding",
+      lambda: np.array_equal(np.asarray(_mask), _mask_ref),
+      msg="mask[b, j] = 1 si j < longitud de la reseña b, 0 en caso contrario")
+
+_PE = positional_encoding(_max, 16)
+_b = 3
+_Lb = min(len(_seqs[_b]), _max)
+_ref_rows = E[np.asarray(_seqs[_b][:_Lb])] + _PE[:_Lb]
+check("Las filas reales son embedding + codificación posicional",
+      lambda: np.allclose(_X[_b, :_Lb], _ref_rows, atol=1e-10),
+      msg="Cada fila debe ser E[token] + PE[posicion] para los tokens reales")
+check("El padding queda anulado a cero (la PE no se cuela)",
+      lambda: np.allclose(_X[np.asarray(_mask) == 0], 0.0),
+      msg="En las posiciones de padding X debe ser exactamente 0: suma la PE solo a los tokens reales (o multiplica por la máscara al final)")
+check("Multiplicar por la máscara no cambia nada (ya está enmascarado)",
+      lambda: np.allclose(_X * np.asarray(_mask)[..., None], _X),
+      msg="X debe venir ya anulado en padding")
+check("Secuencias más largas que max_len se truncan sin error",
+      lambda: encode_batch([list(range(1, 15))], E, 6)[0].shape == (1, 6, 16),
+      msg="Si len(seq) > max_len, quédate con los primeros max_len tokens")
+`,
+    hints: [
+      'Recorre las secuencias con `for b, s in enumerate(seqs)`; la longitud real es `L = min(len(s), max_len)` y la máscara `mask[b, :L] = 1.0`.',
+      'Las filas válidas son `E[np.asarray(s[:L])] + PE[:L]`. Si inicializas $X$ a ceros y solo rellenas las filas reales, el padding ya queda anulado.',
+      'Imprime `mask.astype(int)` para comprobar que las reseñas cortas tienen ceros al final.',
+    ],
+  },
+  {
+    id: 'transformers-sent-attention',
+    title: 'P2 · Forward del clasificador con atención',
+    difficulty: 'INTERMEDIO',
+    xp: 90,
+    statement: [
+      'Segunda pieza del proyecto: el **forward completo** del clasificador de sentimiento con una capa de self-attention. Los pesos vienen dados (todavía sin entrenar): tu misión es que el cálculo sea exacto.',
+      '',
+      '$$Q = XW^Q \\quad K = XW^K \\quad V = XW^V \\qquad \\mathrm{attn} = \\mathrm{softmax}\\!\\left(\\frac{QK^{\\top}}{\\sqrt{d}} + M_{pad}\\right) \\qquad O = \\mathrm{attn}\\,V$$',
+      '',
+      'Implementa `sentiment_forward(X, mask, Wq, Wk, Wv, w_head, b_head)` que devuelva `(probs, attn)`:',
+      '',
+      '- `attn`: softmax estable por filas sobre las **keys**, con máscara de padding aditiva: suma $(1 - mask) \\cdot (-10^9)$ en el eje de las keys antes de la softmax.\n- `pooled`: media de $O$ **solo sobre tokens reales** (mean-pooling enmascarado: suma con máscara y divide entre `mask.sum`).\n- `probs`: softmax de `pooled @ w_head + b_head`, forma $(B, 2)$.',
+      '',
+      'El test compara contra la referencia paso a paso: padding con peso ~0, filas que suman 1 y probabilidades exactas. Es el mismo pipeline que usarás entrenado en el siguiente ejercicio.',
+    ].join('\n'),
+    starter_code: `import numpy as np
+
+VOCAB = {
+    '<pad>': 0, 'me': 1, 'gusta': 2, 'encanta': 3, 'no': 4, 'este': 5,
+    'producto': 6, 'calidad': 7, 'increible': 8, 'horrible': 9, 'rompio': 10,
+    'primer': 11, 'dia': 12, 'muy': 13, 'nada': 14, 'malo': 15, 'bueno': 16,
+    'genial': 17, 'perfecto': 18, 'funciona': 19, 'bien': 20, 'mal': 21,
+    'decepcion': 22, 'recomiendo': 23, 'compra': 24, 'llego': 25, 'roto': 26,
+    'tarde': 27, 'rapido': 28, 'envio': 29, 'precio': 30, 'caro': 31,
+    'barato': 32, 'es': 33, 'una': 34, 'el': 35, 'se': 36, 'volveria': 37,
+    'comprar': 38, 'nunca': 39, 'siempre': 40, 'lo': 41, 'total': 42,
+    'y': 43, 'a': 44, 'la': 45, 'buena': 46, 'mala': 47, 'perfecta': 48,
+}
+
+_POS = [
+    "me encanta este producto", "la calidad es increible", "funciona muy bien",
+    "es genial y barato", "llego rapido y funciona bien", "una compra perfecta",
+    "lo recomiendo siempre", "precio barato y buena calidad", "es muy bueno",
+    "me gusta este producto",
+]
+_NEG = [
+    "es horrible", "se rompio el primer dia", "una decepcion total",
+    "es muy malo", "llego roto y tarde", "precio caro y mala calidad",
+    "nunca volveria a comprar", "es una compra mala", "el envio llego tarde",
+    "calidad mala y precio caro",
+]
+_NEG_FLIP = [
+    "no me gusta nada", "no funciona nada bien", "no lo recomiendo",
+    "no es bueno", "no me gusta este producto",
+]
+_NEG_POS = [
+    "no es malo", "no es horrible", "no es una decepcion",
+]
+_NEUTRAL = ["este producto", "el producto", "la compra", "el envio"]
+
+def make_reviews(n, seed=1):
+    rng = np.random.default_rng(seed)
+    cats = rng.choice(4, size=n, p=[0.30, 0.30, 0.25, 0.15])
+    seqs, labels = [], []
+    for c in cats:
+        if c == 0:
+            words, y = rng.choice(_POS).split(), 1
+        elif c == 1:
+            words, y = rng.choice(_NEG).split(), 0
+        elif c == 2:
+            words, y = rng.choice(_NEG_FLIP).split(), 0
+        else:
+            words, y = rng.choice(_NEG_POS).split(), 1
+        if rng.random() < 0.35:
+            words = words + rng.choice(_NEUTRAL).split()
+        seqs.append([VOCAB[w] for w in words])
+        labels.append(y)
+    return seqs, np.array(labels)
+
+D = 16
+_rng = np.random.default_rng(42)
+E = _rng.normal(0, 1.0, size=(len(VOCAB), D))
+E[0] = 0.0
+
+def positional_encoding(max_pos, d):
+    PE = np.zeros((max_pos, d))
+    pos = np.arange(max_pos)[:, None]
+    i = np.arange(d)[None, :]
+    angle = pos / np.power(10000.0, (2 * (i // 2)) / d)
+    PE[:, 0::2] = np.sin(angle[:, 0::2])
+    PE[:, 1::2] = np.cos(angle[:, 1::2])
+    return PE
+
+def encode_batch(seqs, E, max_len):
+    """La función del ejercicio anterior, ya implementada."""
+    B = len(seqs)
+    d = E.shape[1]
+    X = np.zeros((B, max_len, d))
+    mask = np.zeros((B, max_len))
+    PE = positional_encoding(max_len, d)
+    for b, s in enumerate(seqs):
+        L = min(len(s), max_len)
+        X[b, :L] = E[np.asarray(s[:L])] + PE[:L]
+        mask[b, :L] = 1.0
+    return X, mask
+
+# Pesos dados (sin entrenar): el ejercicio es implementar el forward
+_rngW = np.random.default_rng(0)
+Wq = _rngW.normal(0, 0.3, size=(D, D))
+Wk = _rngW.normal(0, 0.3, size=(D, D))
+Wv = _rngW.normal(0, 0.3, size=(D, D))
+w_head = _rngW.normal(0, 0.3, size=(D, 2))
+b_head = np.zeros(2)
+
+def sentiment_forward(X, mask, Wq, Wk, Wv, w_head, b_head):
+    """
+    Forward completo del clasificador de una capa de self-attention:
+      Q = X@Wq; K = X@Wk; V = X@Wv
+      attn = softmax(Q @ K^T / sqrt(d) + máscara de padding en las KEYS)
+      O = attn @ V
+      pooled = media de O sobre tokens REALES (mean-pooling enmascarado)
+      probs = softmax(pooled @ w_head + b_head)
+    Devuelve (probs, attn): (B, 2) y (B, L, L).
+    """
+    # TODO
+    B, L, d = X.shape
+    return np.zeros((B, 2)), np.zeros((B, L, L))
+
+# Prueba rápida
+seqs, labels = make_reviews(6, seed=9)
+X, mask = encode_batch(seqs, E, 8)
+probs, attn = sentiment_forward(X, mask, Wq, Wk, Wv, w_head, b_head)
+print(probs.round(3))
+print("peso hacia keys de padding (debe ser 0):", round(float(attn[0][:, mask[0] == 0].sum()), 6))
+`,
+    solution_code: `import numpy as np
+
+VOCAB = {
+    '<pad>': 0, 'me': 1, 'gusta': 2, 'encanta': 3, 'no': 4, 'este': 5,
+    'producto': 6, 'calidad': 7, 'increible': 8, 'horrible': 9, 'rompio': 10,
+    'primer': 11, 'dia': 12, 'muy': 13, 'nada': 14, 'malo': 15, 'bueno': 16,
+    'genial': 17, 'perfecto': 18, 'funciona': 19, 'bien': 20, 'mal': 21,
+    'decepcion': 22, 'recomiendo': 23, 'compra': 24, 'llego': 25, 'roto': 26,
+    'tarde': 27, 'rapido': 28, 'envio': 29, 'precio': 30, 'caro': 31,
+    'barato': 32, 'es': 33, 'una': 34, 'el': 35, 'se': 36, 'volveria': 37,
+    'comprar': 38, 'nunca': 39, 'siempre': 40, 'lo': 41, 'total': 42,
+    'y': 43, 'a': 44, 'la': 45, 'buena': 46, 'mala': 47, 'perfecta': 48,
+}
+
+_POS = [
+    "me encanta este producto", "la calidad es increible", "funciona muy bien",
+    "es genial y barato", "llego rapido y funciona bien", "una compra perfecta",
+    "lo recomiendo siempre", "precio barato y buena calidad", "es muy bueno",
+    "me gusta este producto",
+]
+_NEG = [
+    "es horrible", "se rompio el primer dia", "una decepcion total",
+    "es muy malo", "llego roto y tarde", "precio caro y mala calidad",
+    "nunca volveria a comprar", "es una compra mala", "el envio llego tarde",
+    "calidad mala y precio caro",
+]
+_NEG_FLIP = [
+    "no me gusta nada", "no funciona nada bien", "no lo recomiendo",
+    "no es bueno", "no me gusta este producto",
+]
+_NEG_POS = [
+    "no es malo", "no es horrible", "no es una decepcion",
+]
+_NEUTRAL = ["este producto", "el producto", "la compra", "el envio"]
+
+def make_reviews(n, seed=1):
+    rng = np.random.default_rng(seed)
+    cats = rng.choice(4, size=n, p=[0.30, 0.30, 0.25, 0.15])
+    seqs, labels = [], []
+    for c in cats:
+        if c == 0:
+            words, y = rng.choice(_POS).split(), 1
+        elif c == 1:
+            words, y = rng.choice(_NEG).split(), 0
+        elif c == 2:
+            words, y = rng.choice(_NEG_FLIP).split(), 0
+        else:
+            words, y = rng.choice(_NEG_POS).split(), 1
+        if rng.random() < 0.35:
+            words = words + rng.choice(_NEUTRAL).split()
+        seqs.append([VOCAB[w] for w in words])
+        labels.append(y)
+    return seqs, np.array(labels)
+
+D = 16
+_rng = np.random.default_rng(42)
+E = _rng.normal(0, 1.0, size=(len(VOCAB), D))
+E[0] = 0.0
+
+def positional_encoding(max_pos, d):
+    PE = np.zeros((max_pos, d))
+    pos = np.arange(max_pos)[:, None]
+    i = np.arange(d)[None, :]
+    angle = pos / np.power(10000.0, (2 * (i // 2)) / d)
+    PE[:, 0::2] = np.sin(angle[:, 0::2])
+    PE[:, 1::2] = np.cos(angle[:, 1::2])
+    return PE
+
+def encode_batch(seqs, E, max_len):
+    B = len(seqs)
+    d = E.shape[1]
+    X = np.zeros((B, max_len, d))
+    mask = np.zeros((B, max_len))
+    PE = positional_encoding(max_len, d)
+    for b, s in enumerate(seqs):
+        L = min(len(s), max_len)
+        X[b, :L] = E[np.asarray(s[:L])] + PE[:L]
+        mask[b, :L] = 1.0
+    return X, mask
+
+# Pesos dados (sin entrenar)
+_rngW = np.random.default_rng(0)
+Wq = _rngW.normal(0, 0.3, size=(D, D))
+Wk = _rngW.normal(0, 0.3, size=(D, D))
+Wv = _rngW.normal(0, 0.3, size=(D, D))
+w_head = _rngW.normal(0, 0.3, size=(D, 2))
+b_head = np.zeros(2)
+
+def sentiment_forward(X, mask, Wq, Wk, Wv, w_head, b_head):
+    X = np.asarray(X, dtype=float)
+    mask = np.asarray(mask, dtype=float)
+    Q = X @ Wq
+    K = X @ Wk
+    V = X @ Wv
+    d = Q.shape[-1]
+    scores = Q @ K.transpose(0, 2, 1) / np.sqrt(d)
+    scores = scores + (1.0 - mask)[:, None, :] * (-1e9)   # máscara en las keys
+    scores = scores - scores.max(axis=-1, keepdims=True)
+    e = np.exp(scores)
+    attn = e / e.sum(axis=-1, keepdims=True)
+    O = attn @ V
+    cnt = mask.sum(axis=1, keepdims=True)
+    pooled = (O * mask[:, :, None]).sum(axis=1) / cnt     # mean-pooling enmascarado
+    logits = pooled @ w_head + b_head
+    logits = logits - logits.max(axis=-1, keepdims=True)
+    el = np.exp(logits)
+    probs = el / el.sum(axis=-1, keepdims=True)
+    return probs, attn
+
+# Prueba rápida
+seqs, labels = make_reviews(6, seed=9)
+X, mask = encode_batch(seqs, E, 8)
+probs, attn = sentiment_forward(X, mask, Wq, Wk, Wv, w_head, b_head)
+print(probs.round(3))
+print("peso hacia keys de padding (debe ser 0):", round(float(attn[0][:, mask[0] == 0].sum()), 6))
+`,
+    test_code: `
+_seqs, _y = make_reviews(24, seed=11)
+_Lmax = 8
+_X, _mask = encode_batch(_seqs, E, _Lmax)
+_probs, _attn = sentiment_forward(_X, _mask, Wq, Wk, Wv, w_head, b_head)
+
+check("Formas: probs (B, 2) y attn (B, L, L)",
+      lambda: _probs.shape == (24, 2) and _attn.shape == (24, _Lmax, _Lmax),
+      msg=f"Se esperaba (24, 2) y (24, {_Lmax}, {_Lmax}), llegaron {_probs.shape} y {_attn.shape}")
+check("probs son probabilidades: cada fila suma 1",
+      lambda: np.allclose(_probs.sum(axis=1), 1.0),
+      msg="Aplica softmax a los logits de salida")
+check("Cada fila de attn suma 1 (softmax por filas sobre las keys)",
+      lambda: np.allclose(_attn.sum(axis=-1), 1.0),
+      msg="La softmax de la atención se hace a lo largo del eje de las keys (último eje)")
+check("Las keys de padding reciben peso ~0",
+      lambda: np.allclose(_attn * (1.0 - _mask)[:, None, :], 0.0, atol=1e-6),
+      msg="Suma (1 - mask) * (-inf o -1e9) a las puntuaciones antes de la softmax, en el eje de las keys")
+
+# referencia completa, paso a paso
+_Q = _X @ Wq
+_K = _X @ Wk
+_V = _X @ Wv
+_s = _Q @ _K.transpose(0, 2, 1) / np.sqrt(_Q.shape[-1]) + (1.0 - _mask)[:, None, :] * (-1e9)
+_s = _s - _s.max(axis=-1, keepdims=True)
+_e = np.exp(_s)
+_attn_ref = _e / _e.sum(axis=-1, keepdims=True)
+_O = _attn_ref @ _V
+_pooled_ref = (_O * _mask[:, :, None]).sum(axis=1) / _mask.sum(axis=1, keepdims=True)
+_logits = _pooled_ref @ w_head + b_head
+_logits = _logits - _logits.max(axis=-1, keepdims=True)
+_el = np.exp(_logits)
+_probs_ref = _el / _el.sum(axis=-1, keepdims=True)
+
+check("Los pesos de atención coinciden con la referencia",
+      lambda: np.allclose(_attn, _attn_ref, atol=1e-8),
+      msg="Revisa Q = X@Wq, K = X@Wk, el escalado por sqrt(d) y la máscara de padding en las keys")
+check("Las probabilidades coinciden con la referencia completa",
+      lambda: np.allclose(_probs, _probs_ref, atol=1e-8),
+      msg="Revisa O = attn@V, el mean-pooling SOLO sobre tokens reales (divide entre la suma de la máscara) y logits = pooled@w_head + b_head")
+
+# el mean-pooling debe ignorar el padding: mover la máscara cambia el resultado
+_X1 = _X[:1]
+_m_bad = np.ones_like(_mask[:1])
+_p_bad, _ = sentiment_forward(_X1, _m_bad, Wq, Wk, Wv, w_head, b_head)
+_p_ok, _ = sentiment_forward(_X1, _mask[:1], Wq, Wk, Wv, w_head, b_head)
+check("El pooling usa la máscara (contar el padding cambia el resultado)",
+      lambda: not np.allclose(_p_bad, _p_ok, atol=1e-6),
+      msg="Divide entre el número de tokens REALES y multiplica O por la máscara antes de sumar")
+`,
+    hints: [
+      'La máscara se aplica sobre las **keys** (último eje): `scores + (1.0 - mask)[:, None, :] * (-1e9)` antes de la softmax estable (resta el máximo por fila).',
+      'El pooling enmascarado: `(O * mask[:, :, None]).sum(axis=1) / mask.sum(axis=1, keepdims=True)` — el padding no cuenta ni arriba ni abajo.',
+      'Cierra con `logits = pooled @ w_head + b_head` y una softmax estable por filas. Devuelve `(probs, attn)` en ese orden.',
+    ],
+  },
+  {
+    id: 'transformers-sent-train',
+    title: 'P3 · Entrena el clasificador de sentimiento',
+    difficulty: 'AVANZADO',
+    xp: 130,
+    statement: [
+      'La pieza final: **entrenar el modelo de verdad**. Embeddings congelados y una capa de self-attention cuyos pesos $W^Q, W^K, W^V$ se entrenan junto a la cabeza clasificadora — todo con backpropagation escrita a mano y entropía cruzada:',
+      '',
+      '$$\\mathcal{L} = -\\frac{1}{B}\\sum_i \\log p_i(y_i)$$',
+      '',
+      'Implementa `forward(X, mask, params)` (el pipeline del ejercicio anterior, con `params = (Wq, Wk, Wv, w_head, b_head)`) y `train(X, mask, y, epochs=400, lr=0.5, seed=0)`, que devuelve la tupla de parámetros entrenada. El backward atraviesa, en orden inverso: la softmax de salida, la cabeza, el pooling (solo tokens reales), el producto $\\mathrm{attn}\\,V$, la softmax de la atención (regla $A \\odot (dA - \\sum dA \\cdot A)$ por filas), el escalado por $\\sqrt{d}$ y las tres proyecciones.',
+      '',
+      '**Objetivo**: accuracy ≥ 0.90 en test… incluyendo las reseñas con **negación**. Un bag-of-words no puede distinguir «no es malo» de «no es bueno»; tu atención sí puede aprender a combinar el «no» con el adjetivo. Ese es, en miniatura, el trabajo que hace BERT en producción.',
+    ].join('\n'),
+    starter_code: `import numpy as np
+
+VOCAB = {
+    '<pad>': 0, 'me': 1, 'gusta': 2, 'encanta': 3, 'no': 4, 'este': 5,
+    'producto': 6, 'calidad': 7, 'increible': 8, 'horrible': 9, 'rompio': 10,
+    'primer': 11, 'dia': 12, 'muy': 13, 'nada': 14, 'malo': 15, 'bueno': 16,
+    'genial': 17, 'perfecto': 18, 'funciona': 19, 'bien': 20, 'mal': 21,
+    'decepcion': 22, 'recomiendo': 23, 'compra': 24, 'llego': 25, 'roto': 26,
+    'tarde': 27, 'rapido': 28, 'envio': 29, 'precio': 30, 'caro': 31,
+    'barato': 32, 'es': 33, 'una': 34, 'el': 35, 'se': 36, 'volveria': 37,
+    'comprar': 38, 'nunca': 39, 'siempre': 40, 'lo': 41, 'total': 42,
+    'y': 43, 'a': 44, 'la': 45, 'buena': 46, 'mala': 47, 'perfecta': 48,
+}
+
+_POS = [
+    "me encanta este producto", "la calidad es increible", "funciona muy bien",
+    "es genial y barato", "llego rapido y funciona bien", "una compra perfecta",
+    "lo recomiendo siempre", "precio barato y buena calidad", "es muy bueno",
+    "me gusta este producto",
+]
+_NEG = [
+    "es horrible", "se rompio el primer dia", "una decepcion total",
+    "es muy malo", "llego roto y tarde", "precio caro y mala calidad",
+    "nunca volveria a comprar", "es una compra mala", "el envio llego tarde",
+    "calidad mala y precio caro",
+]
+_NEG_FLIP = [
+    "no me gusta nada", "no funciona nada bien", "no lo recomiendo",
+    "no es bueno", "no me gusta este producto",
+]
+_NEG_POS = [
+    "no es malo", "no es horrible", "no es una decepcion",
+]
+_NEUTRAL = ["este producto", "el producto", "la compra", "el envio"]
+
+def make_reviews(n, seed=1):
+    rng = np.random.default_rng(seed)
+    cats = rng.choice(4, size=n, p=[0.30, 0.30, 0.25, 0.15])
+    seqs, labels = [], []
+    for c in cats:
+        if c == 0:
+            words, y = rng.choice(_POS).split(), 1
+        elif c == 1:
+            words, y = rng.choice(_NEG).split(), 0
+        elif c == 2:
+            words, y = rng.choice(_NEG_FLIP).split(), 0
+        else:
+            words, y = rng.choice(_NEG_POS).split(), 1
+        if rng.random() < 0.35:
+            words = words + rng.choice(_NEUTRAL).split()
+        seqs.append([VOCAB[w] for w in words])
+        labels.append(y)
+    return seqs, np.array(labels)
+
+D = 16
+_rng = np.random.default_rng(42)
+E = _rng.normal(0, 1.0, size=(len(VOCAB), D))
+E[0] = 0.0
+
+def positional_encoding(max_pos, d):
+    PE = np.zeros((max_pos, d))
+    pos = np.arange(max_pos)[:, None]
+    i = np.arange(d)[None, :]
+    angle = pos / np.power(10000.0, (2 * (i // 2)) / d)
+    PE[:, 0::2] = np.sin(angle[:, 0::2])
+    PE[:, 1::2] = np.cos(angle[:, 1::2])
+    return PE
+
+def encode_batch(seqs, E, max_len):
+    """La función del primer ejercicio, ya implementada."""
+    B = len(seqs)
+    d = E.shape[1]
+    X = np.zeros((B, max_len, d))
+    mask = np.zeros((B, max_len))
+    PE = positional_encoding(max_len, d)
+    for b, s in enumerate(seqs):
+        L = min(len(s), max_len)
+        X[b, :L] = E[np.asarray(s[:L])] + PE[:L]
+        mask[b, :L] = 1.0
+    return X, mask
+
+# --- Datos ---
+MAX_LEN = 8
+seqs_train, y_train = make_reviews(260, seed=1)
+seqs_test, y_test = make_reviews(160, seed=2)
+X_train, mask_train = encode_batch(seqs_train, E, MAX_LEN)
+X_test, mask_test = encode_batch(seqs_test, E, MAX_LEN)
+
+def forward(X, mask, params):
+    """probs (B, 2) del clasificador. params = (Wq, Wk, Wv, w_head, b_head)."""
+    Wq, Wk, Wv, w_head, b_head = params
+    # TODO: el pipeline del ejercicio anterior (atención enmascarada +
+    # mean-pooling enmascarado + cabeza + softmax)
+    return np.zeros((X.shape[0], 2))
+
+def train(X, mask, y, epochs=400, lr=0.5, seed=0):
+    """
+    Entrena (Wq, Wk, Wv, w_head, b_head) por descenso de gradiente con batch
+    completo y entropía cruzada. Los embeddings E quedan congelados.
+    Devuelve la tupla de parámetros entrenada.
+    """
+    rng = np.random.default_rng(seed)
+    d = X.shape[2]
+    Wq = rng.normal(0, 0.3, size=(d, d))
+    Wk = rng.normal(0, 0.3, size=(d, d))
+    Wv = rng.normal(0, 0.3, size=(d, d))
+    w_head = rng.normal(0, 0.3, size=(d, 2))
+    b_head = np.zeros(2)
+    B = X.shape[0]
+    y_oh = np.zeros((B, 2))
+    y_oh[np.arange(B), y] = 1.0
+    for ep in range(epochs):
+        # TODO forward CON CACHÉ (guarda Q, K, V, A, O, pooled)
+        # TODO backward: dlogits = (probs - y_oh) / B y regla de la cadena
+        # hacia atrás por cabeza, pooling, attn@V, softmax de atención,
+        # escalado y proyecciones; actualiza los 5 parámetros
+        pass
+    return Wq, Wk, Wv, w_head, b_head
+
+params = train(X_train, mask_train, y_train)
+probs_test = forward(X_test, mask_test, params)
+acc = float(np.mean(probs_test.argmax(axis=1) == y_test))
+print("accuracy test:", round(acc, 3))
+`,
+    solution_code: `import numpy as np
+
+VOCAB = {
+    '<pad>': 0, 'me': 1, 'gusta': 2, 'encanta': 3, 'no': 4, 'este': 5,
+    'producto': 6, 'calidad': 7, 'increible': 8, 'horrible': 9, 'rompio': 10,
+    'primer': 11, 'dia': 12, 'muy': 13, 'nada': 14, 'malo': 15, 'bueno': 16,
+    'genial': 17, 'perfecto': 18, 'funciona': 19, 'bien': 20, 'mal': 21,
+    'decepcion': 22, 'recomiendo': 23, 'compra': 24, 'llego': 25, 'roto': 26,
+    'tarde': 27, 'rapido': 28, 'envio': 29, 'precio': 30, 'caro': 31,
+    'barato': 32, 'es': 33, 'una': 34, 'el': 35, 'se': 36, 'volveria': 37,
+    'comprar': 38, 'nunca': 39, 'siempre': 40, 'lo': 41, 'total': 42,
+    'y': 43, 'a': 44, 'la': 45, 'buena': 46, 'mala': 47, 'perfecta': 48,
+}
+
+_POS = [
+    "me encanta este producto", "la calidad es increible", "funciona muy bien",
+    "es genial y barato", "llego rapido y funciona bien", "una compra perfecta",
+    "lo recomiendo siempre", "precio barato y buena calidad", "es muy bueno",
+    "me gusta este producto",
+]
+_NEG = [
+    "es horrible", "se rompio el primer dia", "una decepcion total",
+    "es muy malo", "llego roto y tarde", "precio caro y mala calidad",
+    "nunca volveria a comprar", "es una compra mala", "el envio llego tarde",
+    "calidad mala y precio caro",
+]
+_NEG_FLIP = [
+    "no me gusta nada", "no funciona nada bien", "no lo recomiendo",
+    "no es bueno", "no me gusta este producto",
+]
+_NEG_POS = [
+    "no es malo", "no es horrible", "no es una decepcion",
+]
+_NEUTRAL = ["este producto", "el producto", "la compra", "el envio"]
+
+def make_reviews(n, seed=1):
+    rng = np.random.default_rng(seed)
+    cats = rng.choice(4, size=n, p=[0.30, 0.30, 0.25, 0.15])
+    seqs, labels = [], []
+    for c in cats:
+        if c == 0:
+            words, y = rng.choice(_POS).split(), 1
+        elif c == 1:
+            words, y = rng.choice(_NEG).split(), 0
+        elif c == 2:
+            words, y = rng.choice(_NEG_FLIP).split(), 0
+        else:
+            words, y = rng.choice(_NEG_POS).split(), 1
+        if rng.random() < 0.35:
+            words = words + rng.choice(_NEUTRAL).split()
+        seqs.append([VOCAB[w] for w in words])
+        labels.append(y)
+    return seqs, np.array(labels)
+
+D = 16
+_rng = np.random.default_rng(42)
+E = _rng.normal(0, 1.0, size=(len(VOCAB), D))
+E[0] = 0.0
+
+def positional_encoding(max_pos, d):
+    PE = np.zeros((max_pos, d))
+    pos = np.arange(max_pos)[:, None]
+    i = np.arange(d)[None, :]
+    angle = pos / np.power(10000.0, (2 * (i // 2)) / d)
+    PE[:, 0::2] = np.sin(angle[:, 0::2])
+    PE[:, 1::2] = np.cos(angle[:, 1::2])
+    return PE
+
+def encode_batch(seqs, E, max_len):
+    B = len(seqs)
+    d = E.shape[1]
+    X = np.zeros((B, max_len, d))
+    mask = np.zeros((B, max_len))
+    PE = positional_encoding(max_len, d)
+    for b, s in enumerate(seqs):
+        L = min(len(s), max_len)
+        X[b, :L] = E[np.asarray(s[:L])] + PE[:L]
+        mask[b, :L] = 1.0
+    return X, mask
+
+# --- Datos ---
+MAX_LEN = 8
+seqs_train, y_train = make_reviews(260, seed=1)
+seqs_test, y_test = make_reviews(160, seed=2)
+X_train, mask_train = encode_batch(seqs_train, E, MAX_LEN)
+X_test, mask_test = encode_batch(seqs_test, E, MAX_LEN)
+
+def forward(X, mask, params):
+    Wq, Wk, Wv, w_head, b_head = params
+    Q = X @ Wq
+    K = X @ Wk
+    V = X @ Wv
+    d = Q.shape[-1]
+    scores = Q @ K.transpose(0, 2, 1) / np.sqrt(d)
+    scores = scores + (1.0 - mask)[:, None, :] * (-1e9)
+    scores = scores - scores.max(axis=-1, keepdims=True)
+    e = np.exp(scores)
+    attn = e / e.sum(axis=-1, keepdims=True)
+    O = attn @ V
+    pooled = (O * mask[:, :, None]).sum(axis=1) / mask.sum(axis=1, keepdims=True)
+    logits = pooled @ w_head + b_head
+    logits = logits - logits.max(axis=-1, keepdims=True)
+    el = np.exp(logits)
+    return el / el.sum(axis=-1, keepdims=True)
+
+def train(X, mask, y, epochs=400, lr=0.5, seed=0):
+    rng = np.random.default_rng(seed)
+    d = X.shape[2]
+    Wq = rng.normal(0, 0.3, size=(d, d))
+    Wk = rng.normal(0, 0.3, size=(d, d))
+    Wv = rng.normal(0, 0.3, size=(d, d))
+    w_head = rng.normal(0, 0.3, size=(d, 2))
+    b_head = np.zeros(2)
+    B = X.shape[0]
+    y_oh = np.zeros((B, 2))
+    y_oh[np.arange(B), y] = 1.0
+    for ep in range(epochs):
+        # forward con caché
+        Q = X @ Wq
+        K = X @ Wk
+        V = X @ Wv
+        scores = Q @ K.transpose(0, 2, 1) / np.sqrt(d)
+        scores = scores + (1.0 - mask)[:, None, :] * (-1e9)
+        scores = scores - scores.max(axis=-1, keepdims=True)
+        e = np.exp(scores)
+        A = e / e.sum(axis=-1, keepdims=True)
+        O = A @ V
+        cnt = mask.sum(axis=1, keepdims=True)
+        pooled = (O * mask[:, :, None]).sum(axis=1) / cnt
+        logits = pooled @ w_head + b_head
+        logits = logits - logits.max(axis=-1, keepdims=True)
+        el = np.exp(logits)
+        probs = el / el.sum(axis=-1, keepdims=True)
+        loss = -float(np.mean(np.sum(y_oh * np.log(probs + 1e-12), axis=1)))
+        # backward
+        dlogits = (probs - y_oh) / B
+        dw_head = pooled.T @ dlogits
+        db_head = dlogits.sum(axis=0)
+        dpooled = dlogits @ w_head.T
+        dO = dpooled[:, None, :] * mask[:, :, None] / cnt[:, :, None]
+        dA = dO @ V.transpose(0, 2, 1)
+        dV = A.transpose(0, 2, 1) @ dO
+        dscores = A * (dA - (dA * A).sum(axis=-1, keepdims=True))
+        dscores = dscores * mask[:, None, :]
+        dQ = dscores @ K / np.sqrt(d)
+        dK = dscores.transpose(0, 2, 1) @ Q / np.sqrt(d)
+        Wq -= lr * (X.transpose(0, 2, 1) @ dQ).sum(axis=0)
+        Wk -= lr * (X.transpose(0, 2, 1) @ dK).sum(axis=0)
+        Wv -= lr * (X.transpose(0, 2, 1) @ dV).sum(axis=0)
+        w_head -= lr * dw_head
+        b_head -= lr * db_head
+    return Wq, Wk, Wv, w_head, b_head
+
+params = train(X_train, mask_train, y_train)
+probs_test = forward(X_test, mask_test, params)
+acc = float(np.mean(probs_test.argmax(axis=1) == y_test))
+print("accuracy test:", round(acc, 3))
+`,
+    test_code: `
+_probs_tr = forward(X_train, mask_train, params)
+_probs_te = forward(X_test, mask_test, params)
+check("forward devuelve probabilidades (B, 2) que suman 1",
+      lambda: _probs_te.shape == (len(y_test), 2) and np.allclose(_probs_te.sum(axis=1), 1.0),
+      msg="forward debe devolver la softmax de los logits, forma (B, 2)")
+
+_acc_tr = float(np.mean(_probs_tr.argmax(axis=1) == y_train))
+_acc_te = float(np.mean(_probs_te.argmax(axis=1) == y_test))
+check("El modelo aprende: accuracy en train ≥ 0.95",
+      lambda: _acc_tr >= 0.95,
+      msg=f"Accuracy train {_acc_tr:.3f}: revisa el bucle de entrenamiento y el backprop")
+check("Generaliza: accuracy en test ≥ 0.90",
+      lambda: _acc_te >= 0.90,
+      msg=f"Accuracy test {_acc_te:.3f}: el modelo debe generalizar a reseñas nuevas")
+check("Mejor que el azar de verdad: accuracy ≥ 0.75 incluso sin mirar la clase mayoritaria",
+      lambda: _acc_te >= 0.75 and _acc_tr >= 0.75,
+      msg="Umbral mínimo de aprendizaje")
+
+_no = VOCAB['no']
+_neg = np.array([_no in s for s in seqs_test])
+_acc_neg = float(np.mean(_probs_te.argmax(axis=1)[_neg] == y_test[_neg]))
+check("Acierta las reseñas con negación ('no ...'): accuracy ≥ 0.90 en ese subconjunto",
+      lambda: _acc_neg >= 0.90,
+      msg=f"Accuracy con negación {_acc_neg:.3f}: la atención tiene que aprender a combinar 'no' con el adjetivo")
+check("El subconjunto de negación no es trivial (al menos 30 ejemplos)",
+      lambda: _neg.sum() >= 30,
+      msg="Comprueba que estás evaluando sobre las reseñas que contienen 'no'")
+`,
+    hints: [
+      'Reutiliza tu `forward` del ejercicio anterior pero guardando las intermedias (`Q, K, V, A, O, pooled`): las necesitas todas en el backward.',
+      'El gradiente de la softmax de atención por filas es `A * (dA - (dA * A).sum(axis=-1, keepdims=True))`; anula después las keys de padding multiplicando por `mask[:, None, :]`.',
+      'Con batch completo, `lr=0.5` y 400 épocas la accuracy de test supera 0.95. Si no aprende, revisa que `dlogits = (probs - y_oh) / B` y que acumulas `X.transpose(0,2,1) @ dQ` sumado sobre el batch.',
+    ],
+  },
 ]
 
 registerExercises(TRANSFORMERS_EXERCISES)
