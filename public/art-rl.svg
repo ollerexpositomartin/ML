@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs>
+    <radialGradient id="bgGlow" cx="62%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#0A1430"/>
+      <stop offset="55%" stop-color="#060A18"/>
+      <stop offset="100%" stop-color="#04060D"/>
+    </radialGradient>
+    <radialGradient id="cyanGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#22D3EE" stop-opacity="0.85"/>
+      <stop offset="40%" stop-color="#22D3EE" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="limeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#A3E635" stop-opacity="0.9"/>
+      <stop offset="45%" stop-color="#A3E635" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#A3E635" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="roseGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FB7185" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#FB7185" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="traj" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="55%" stop-color="#22D3EE"/>
+      <stop offset="100%" stop-color="#A3E635"/>
+    </linearGradient>
+    <linearGradient id="trajSoft" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0.25"/>
+    </linearGradient>
+    <filter id="blur18" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <filter id="blur6" x="-60% y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <!-- fondo -->
+  <rect width="1200" height="900" fill="url(#bgGlow)"/>
+
+  <!-- rejilla blueprint de fondo -->
+  <g stroke="#1C2440" stroke-width="1" opacity="0.35">
+    <path d="M0 112.5 H1200 M0 225 H1200 M0 337.5 H1200 M0 450 H1200 M0 562.5 H1200 M0 675 H1200 M0 787.5 H1200"/>
+    <path d="M150 0 V900 M300 0 V900 M450 0 V900 M600 0 V900 M750 0 V900 M900 0 V900 M1050 0 V900"/>
+  </g>
+
+  <!-- gridworld: 6x6 celdas de 130px, origen (210,105) -->
+  <g transform="translate(210,105)">
+    <!-- halo de la meta -->
+    <circle cx="715" cy="585" r="200" fill="url(#limeGlow)"/>
+    <!-- halo del agente -->
+    <circle cx="65" cy="65" r="150" fill="url(#cyanGlow)"/>
+    <!-- halos de pozos -->
+    <circle cx="325" cy="195" r="110" fill="url(#roseGlow)"/>
+    <circle cx="195" cy="455" r="110" fill="url(#roseGlow)"/>
+
+    <!-- celdas base -->
+    <g fill="#0A0E1A" stroke="#1C2440" stroke-width="2">
+      <rect x="0" y="0" width="780" height="780" fill="none" stroke-width="3"/>
+      <!-- líneas internas -->
+      <path d="M130 0 V780 M260 0 V780 M390 0 V780 M520 0 V780 M650 0 V780"/>
+      <path d="M0 130 H780 M0 260 H780 M0 390 H780 M0 520 H780 M0 650 H780"/>
+    </g>
+
+    <!-- muros -->
+    <g fill="#070A14" stroke="#232C4D" stroke-width="2">
+      <rect x="260" y="130" width="130" height="130"/>
+      <rect x="390" y="130" width="130" height="130"/>
+      <rect x="130" y="260" width="130" height="130"/>
+      <rect x="260" y="390" width="130" height="130"/>
+    </g>
+    <g stroke="#2B3557" stroke-width="1.5" opacity="0.8">
+      <path d="M270 240 L380 140 M270 140 L380 240"/>
+      <path d="M400 240 L510 140 M400 140 L510 240"/>
+      <path d="M140 370 L250 270 M140 270 L250 370"/>
+      <path d="M270 500 L380 400 M270 400 L380 500"/>
+    </g>
+
+    <!-- pozos -->
+    <g>
+      <rect x="390" y="260" width="130" height="130" fill="#160A12" stroke="#FB7185" stroke-opacity="0.55" stroke-width="2.5"/>
+      <path d="M425 295 L485 355 M485 295 L425 355" stroke="#FB7185" stroke-width="6" stroke-linecap="round"/>
+      <rect x="130" y="520" width="130" height="130" fill="#160A12" stroke="#FB7185" stroke-opacity="0.55" stroke-width="2.5"/>
+      <path d="M165 555 L225 615 M225 555 L165 615" stroke="#FB7185" stroke-width="6" stroke-linecap="round"/>
+    </g>
+
+    <!-- meta -->
+    <rect x="650" y="520" width="130" height="130" fill="#0C1608" stroke="#A3E635" stroke-opacity="0.8" stroke-width="3"/>
+    <text x="715" y="602" font-family="monospace" font-size="46" font-weight="bold" fill="#A3E635" text-anchor="middle">G</text>
+
+    <!-- trayectorias exploratorias (tenues, violeta) -->
+    <g fill="none" stroke="url(#trajSoft)" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 14">
+      <path d="M65 65 C 200 40, 320 60, 455 65 S 700 120, 715 195"/>
+      <path d="M65 65 C 60 220, 40 330, 65 455 S 180 620, 325 585"/>
+      <path d="M455 325 C 540 380, 620 420, 585 520"/>
+    </g>
+
+    <!-- trayectoria aprendida (principal) -->
+    <path d="M65 65 C 150 70, 190 68, 195 130 C 200 210, 190 280, 260 325
+             C 330 372, 380 330, 455 325 C 560 318, 640 380, 682 460
+             C 700 500, 706 540, 715 560"
+          fill="none" stroke="url(#traj)" stroke-width="7" stroke-linecap="round" filter="url(#blur6)" opacity="0.9"/>
+    <path d="M65 65 C 150 70, 190 68, 195 130 C 200 210, 190 280, 260 325
+             C 330 372, 380 330, 455 325 C 560 318, 640 380, 682 460
+             C 700 500, 706 540, 715 560"
+          fill="none" stroke="url(#traj)" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- flechas de política en algunas celdas -->
+    <g stroke="#22D3EE" stroke-width="4" stroke-linecap="round" fill="#22D3EE" opacity="0.9">
+      <path d="M85 195 L115 195 M115 195 L104 186 M115 195 L104 204" fill="none"/>
+      <path d="M195 215 L195 245 M195 245 L186 234 M195 245 L204 234" fill="none"/>
+      <path d="M345 325 L375 325 M375 325 L364 316 M375 325 L364 334" fill="none"/>
+      <path d="M535 325 L565 325 M565 325 L554 316 M565 325 L554 334" fill="none"/>
+      <path d="M645 425 L665 445 M665 445 L651 443 M665 445 L663 431" fill="none"/>
+      <path d="M715 455 L715 485 M715 485 L706 474 M715 485 L724 474" fill="none"/>
+    </g>
+
+    <!-- agente -->
+    <circle cx="65" cy="65" r="34" fill="url(#cyanGlow)"/>
+    <circle cx="65" cy="65" r="17" fill="#22D3EE"/>
+    <circle cx="65" cy="65" r="7" fill="#04060D"/>
+    <text x="65" y="116" font-family="monospace" font-size="18" fill="#8E9AB8" text-anchor="middle">S</text>
+
+    <!-- recompensas flotantes -->
+    <text x="520" y="250" font-family="monospace" font-size="20" fill="#A3E635" opacity="0.95">+10</text>
+    <text x="540" y="430" font-family="monospace" font-size="18" fill="#FB7185" opacity="0.9">−10</text>
+    <text x="300" y="120" font-family="monospace" font-size="16" fill="#8B5CF6" opacity="0.9">γ·r</text>
+  </g>
+
+  <!-- partículas ambientales -->
+  <g fill="#22D3EE">
+    <circle cx="1080" cy="150" r="3" opacity="0.7"/>
+    <circle cx="1120" cy="420" r="2" opacity="0.5"/>
+    <circle cx="90" cy="720" r="3" opacity="0.6"/>
+    <circle cx="1060" cy="800" r="2.5" opacity="0.55"/>
+    <circle cx="140" cy="200" r="2" opacity="0.5"/>
+  </g>
+  <g fill="#8B5CF6">
+    <circle cx="1030" cy="620" r="3" opacity="0.6"/>
+    <circle cx="70" cy="470" r="2.5" opacity="0.5"/>
+    <circle cx="1140" cy="260" r="2" opacity="0.45"/>
+  </g>
+  <g fill="#A3E635">
+    <circle cx="980" cy="90" r="2.5" opacity="0.55"/>
+    <circle cx="60" cy="850" r="2" opacity="0.5"/>
+  </g>
+
+  <!-- etiqueta mono -->
+  <text x="60" y="80" font-family="monospace" font-size="22" fill="#22D3EE" opacity="0.9">// aprender actuando</text>
+  <text x="60" y="110" font-family="monospace" font-size="15" fill="#55618A">estado → acción → recompensa → repetir</text>
+</svg>
