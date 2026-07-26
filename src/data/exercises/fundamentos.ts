@@ -233,7 +233,7 @@ check("Coincide con np.dot en datos aleatorios",
     xp: 20,
     statement: [
       'La derivada es la pendiente de una curva en un punto. Se aproxima con dos puntos muy cercanos (la «secante»):',
-      '$$f\\'(x) \\approx \\frac{f(x + h) - f(x)}{h} \\quad \\text{con } h \\text{ pequeña}$$',
+      '$$f\'(x) \\approx \\frac{f(x + h) - f(x)}{h} \\quad \\text{con } h \\text{ pequeña}$$',
       'Implementa `pendiente(f, x, h=0.001)` que devuelva esa aproximación. Después comprobaremos la regla de la potencia: para $f(x) = x^2$, la pendiente en $x$ es $2x$.',
     ].join('\n\n'),
     starter_code: `import numpy as np
