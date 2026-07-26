@@ -18,7 +18,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 export interface LevelDef {
-  id: 'N0' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6' | 'BOSS'
+  id: 'N0' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6' | 'N7' | 'N8' | 'N9' | 'N10' | 'BOSS'
   name: string
   xpThreshold: number
   color: string
@@ -32,7 +32,11 @@ export const LEVELS: LevelDef[] = [
   { id: 'N4', name: 'Secuencias', xpThreshold: 700, color: '#8B5CF6' },
   { id: 'N5', name: 'Transformers', xpThreshold: 1000, color: '#FBBF24' },
   { id: 'N6', name: 'Modelos generativos', xpThreshold: 1400, color: '#FBBF24' },
-  { id: 'BOSS', name: 'Proyecto final', xpThreshold: 2000, color: '#FB7185' },
+  { id: 'N7', name: 'PyTorch práctico', xpThreshold: 1800, color: '#A3E635' },
+  { id: 'N8', name: 'LLMs modernos', xpThreshold: 2200, color: '#FB7185' },
+  { id: 'N9', name: 'Reinforcement Learning', xpThreshold: 2600, color: '#22D3EE' },
+  { id: 'N10', name: 'MLOps y producción', xpThreshold: 3000, color: '#8B5CF6' },
+  { id: 'BOSS', name: 'Proyecto final', xpThreshold: 3500, color: '#FB7185' },
 ]
 
 export interface ExerciseCompletion {
