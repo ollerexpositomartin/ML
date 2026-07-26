@@ -457,7 +457,7 @@ check("La celda (1,3), vecina de la meta, vale 10.0",
       msg=f"V[1,3]={V[1,3]:.3f}; la recompensa se cobra al ENTRAR en G: V = max_a r + γV(s') con V(G)=0 → 10.0")
 check("Los valores coinciden con la referencia (±1e-3)",
       lambda: bool(np.allclose(V, V_ref, atol=1e-3)),
-      msg=f"tu V:\n{V}\nreferencia:\n{V_ref}")
+      msg=f"tu V:\\n{V}\\nreferencia:\\n{V_ref}")
 check("Converge: repetir la llamada da el mismo resultado",
       lambda: bool(np.allclose(value_iteration(grid, 0.9, 1e-6), V, atol=1e-6)),
       msg="value_iteration debe ser determinista y converger")
