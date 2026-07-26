@@ -6,6 +6,7 @@
 const LEVEL_OF: Record<string, { level: string; label: string; color: string }> = {
   fundamentos: { level: 'N0', label: 'Fundamentos', color: '#22D3EE' },
   'ml-clasico': { level: 'N1', label: 'ML Clásico', color: '#22D3EE' },
+  mlc: { level: 'N1', label: 'ML Clásico', color: '#22D3EE' },
   redes: { level: 'N2', label: 'Redes Neuronales', color: '#8B5CF6' },
   cnn: { level: 'N3', label: 'CNN', color: '#8B5CF6' },
   secuencias: { level: 'N4', label: 'Secuencias', color: '#8B5CF6' },
@@ -36,6 +37,12 @@ export const LEVEL_COLORS: Record<string, string> = {
 }
 
 export function exerciseMeta(id: string) {
-  const prefix = id.split('-')[0]
-  return LEVEL_OF[prefix] ?? { level: '?', label: prefix, color: '#8E9AB8' }
+  // Resuelve por el prefijo más largo que exista en LEVEL_OF
+  // (soporta prefijos con guion como 'ml-clasico-*' y alias como 'mlc-*').
+  const parts = id.split('-')
+  for (let len = parts.length - 1; len >= 1; len--) {
+    const key = parts.slice(0, len).join('-')
+    if (LEVEL_OF[key]) return LEVEL_OF[key]
+  }
+  return { level: '?', label: parts[0], color: '#8E9AB8' }
 }
