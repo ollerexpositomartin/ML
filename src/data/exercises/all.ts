@@ -12,6 +12,10 @@ import { CNN_EXERCISES } from './cnn'
 import { SECUENCIAS_EXERCISES } from './secuencias'
 import { TRANSFORMERS_EXERCISES } from './transformers'
 import { GENERATIVOS_EXERCISES } from './generativos'
+import { PYTORCH_EXERCISES } from './pytorch'
+import { LLM_EXERCISES } from './llm'
+import { RL_EXERCISES } from './rl'
+import { MLOPS_EXERCISES } from './mlops'
 import { BOSS_EXERCISES } from './boss'
 
 registerExercises(FUNDAMENTOS_EXERCISES)
@@ -21,4 +25,8 @@ registerExercises(CNN_EXERCISES)
 registerExercises(SECUENCIAS_EXERCISES)
 registerExercises(TRANSFORMERS_EXERCISES)
 registerExercises(GENERATIVOS_EXERCISES)
+registerExercises(PYTORCH_EXERCISES)
+registerExercises(LLM_EXERCISES)
+registerExercises(RL_EXERCISES)
+registerExercises(MLOPS_EXERCISES)
 registerExercises(BOSS_EXERCISES)
