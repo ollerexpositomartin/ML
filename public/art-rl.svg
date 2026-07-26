@@ -31,7 +31,7 @@
     <filter id="blur18" x="-60%" y="-60%" width="220%" height="220%">
       <feGaussianBlur stdDeviation="18"/>
     </filter>
-    <filter id="blur6" x="-60% y="-60%" width="220%" height="220%">
+    <filter id="blur6" x="-60%" y="-60%" width="220%" height="220%">
       <feGaussianBlur stdDeviation="6"/>
     </filter>
   </defs>
