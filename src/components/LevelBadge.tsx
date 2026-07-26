@@ -21,7 +21,7 @@ export default function LevelBadge({
   size = 'md',
   className,
 }: {
-  level: 'N0' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6' | 'BOSS'
+  level: 'N0' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6' | 'N7' | 'N8' | 'N9' | 'N10' | 'BOSS'
   unlocked?: boolean
   size?: keyof typeof SIZES
   className?: string
